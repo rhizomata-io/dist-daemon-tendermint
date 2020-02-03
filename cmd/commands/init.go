@@ -2,7 +2,8 @@ package commands
 
 import (
 	"fmt"
-
+	"github.com/spf13/viper"
+	
 	"github.com/spf13/cobra"
 	cfg "github.com/tendermint/tendermint/config"
 	tmos "github.com/tendermint/tendermint/libs/os"
@@ -14,10 +15,15 @@ import (
 )
 
 // InitFilesCmd initialises a fresh Tendermint Core instance.
-var InitFilesCmd = &cobra.Command{
-	Use:   "init",
-	Short: "Initialize Bridge-Chain on Tendermint",
-	RunE:  initFiles,
+
+func NewInitCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "init",
+		Short: "Initialize Dist-Daemon on Tendermint",
+		RunE:  initFiles,
+	}
+	cmd.Flags().String("chain-id", config.ChainID(), "Chain ID")
+	return cmd
 }
 
 func initFiles(cmd *cobra.Command, args []string) error {
@@ -55,8 +61,13 @@ func initFilesWithConfig(config *cfg.Config) error {
 	if tmos.FileExists(genFile) {
 		logger.Info("Found genesis file", "path", genFile)
 	} else {
+		chainID := viper.GetString("chain-id")
+		
+		if len(chainID) == 0 {
+			chainID = fmt.Sprintf("test-chain-%v", tmrand.Str(6))
+		}
 		genDoc := types.GenesisDoc{
-			ChainID:         fmt.Sprintf("test-chain-%v", tmrand.Str(6)),
+			ChainID:         chainID,
 			GenesisTime:     tmtime.Now(),
 			ConsensusParams: types.DefaultConsensusParams(),
 		}

@@ -11,7 +11,7 @@ import (
 	"os"
 )
 
-func NewNode(config *cfg.Config, logger log.Logger) (*node.Node, error) {
+func NewNode(config *cfg.Config, logger log.Logger) (tmNode *node.Node, err error) {
 	// Generate node PrivKey
 	nodeKey, err := p2p.LoadOrGenNodeKey(config.NodeKeyFile())
 	if err != nil {
@@ -35,14 +35,16 @@ func NewNode(config *cfg.Config, logger log.Logger) (*node.Node, error) {
 		oldPV.Upgrade(newPrivValKey, newPrivValState)
 	}
 	
-	kvapp := NewDaemonApplication( config.DBDir() )
-	return node.NewNode(config,
+	dapp := NewDaemonApplication( config.DBDir() )
+	tmNode, err = node.NewNode(config,
 		privval.LoadOrGenFilePV(newPrivValKey, newPrivValState),
 		nodeKey,
-		proxy.NewLocalClientCreator(kvapp),
+		proxy.NewLocalClientCreator(dapp),
 		node.DefaultGenesisDocProviderFunc(config),
 		node.DefaultDBProvider,
 		node.DefaultMetricsProvider(config.Instrumentation),
 		logger,
 	)
+	
+	return tmNode, err
 }
