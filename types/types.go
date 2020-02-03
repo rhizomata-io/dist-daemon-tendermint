@@ -20,8 +20,8 @@ var (
 	NilMember = Member{}
 )
 
-func NewMember(name string, nodeid string) Member{
-	return Member{NodeID:nodeid, Name:name}
+func NewMember(name string, nodeid string) *Member{
+	return &Member{NodeID:nodeid, Name:name}
 }
 
 // IsLeader return whether member is leader

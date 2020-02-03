@@ -9,4 +9,5 @@ require (
 	github.com/tendermint/go-amino v0.14.1
 	github.com/tendermint/tendermint v0.33.0
 	github.com/tendermint/tm-db v0.4.0
+	golang.org/x/tools v0.0.0-20190524140312-2c0ae7006135
 )
