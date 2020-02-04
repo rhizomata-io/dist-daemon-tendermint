@@ -35,7 +35,7 @@ func NewNode(config *cfg.Config, logger log.Logger) (tmNode *node.Node, err erro
 		oldPV.Upgrade(newPrivValKey, newPrivValState)
 	}
 	
-	dapp := NewDaemonApplication( config.DBDir() )
+	dapp := NewDaemonApplication( config, logger, config.DBDir() )
 	tmNode, err = node.NewNode(config,
 		privval.LoadOrGenFilePV(newPrivValKey, newPrivValState),
 		nodeKey,
