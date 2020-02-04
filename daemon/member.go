@@ -16,51 +16,36 @@ func (dm *Daemon)PutHeartbeat() (err error){
 		return err
 	}
 	
-	msg := types.NewTxMsg(types.MethodPutHeartbeat, types.PathMember, member.NodeID, bytes)
+	msg := types.NewTxMsg(types.TxSet, types.PathMember, member.NodeID, bytes)
 	
 	return dm.client.BroadcastTxSync(msg)
 }
 
-func (dm *Daemon)GetMember(nodeID string) (member *types.Member, err error){
+func (dm *Daemon)GetMember(nodeID string) (member types.Member, err error){
 	msg := types.NewViewMsgOne(types.PathMember, nodeID)
-	resp, err := dm.client.Query(msg)
-	if err == nil {
-		member = &types.Member{}
-		err = types.BasicCdc.UnmarshalBinaryBare(resp.Value, member)
-		if err != nil {
-			member = nil
-			dm.logger.Error("GetMember : ", err)
-		}
-	}
+	
+	member = types.Member{}
+	err = dm.client.GetObject(msg, &member)
 	return member, err
 }
 
 func (dm *Daemon)GetAllMembers() (members []*types.Member, err error){
 	msg := types.NewViewMsgMany(types.PathMember, "", "")
 	
-	resp, err := dm.client.Query(msg)
-	if err != nil {
-		dm.logger.Error("GetAllMembers : ", err)
-		return nil, err
-	}
-	
-	bytesArray := [][]byte{}
-	err = types.BasicCdc.UnmarshalBinaryBare(resp.Value, &bytesArray)
-	
-	if err != nil {
-		dm.logger.Error("GetAllMembers Unmarshal : ", err)
-		return nil, err
-	}
-	
 	members = []*types.Member{}
-	for _, bytes := range bytesArray {
-		member := &types.Member{}
-		err = types.BasicCdc.UnmarshalBinaryBare(bytes, member)
+	
+	err = dm.client.GetMany(msg, func(data []byte)bool {
+		member := types.Member{}
+		err = dm.client.UnmarshalObject(data, &member)
 		if err != nil {
 			dm.logger.Error("GetAllMembers unmarshal member : ", err)
+		} else {
+			members = append(members, &member)
 		}
-		members = append(members, member)
-	}
+		
+		return true
+	})
+	
 	return members, err
 }
 

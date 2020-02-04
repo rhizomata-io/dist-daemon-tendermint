@@ -36,12 +36,21 @@ func (app *DaemonApp) DeliverTx(req abcitypes.RequestDeliverTx) abcitypes.Respon
 	msg, err := types.DecodeTxMsg(req.Tx)
 	
 	if err != nil {
-		fmt.Println("[ERROR] DeliverTx", err, string(req.Tx))
+		app.logger.Error("DeliverTx", err)
 		cd = code.CodeTypeEncodingError
 	} else {
 		store := app.storeRegistry.GetOrMakeStore(msg.Path)
-		//fmt.Println("---- DeliverTx Store Path:", store.GetPath())
-		store.Set(msg.Key, msg.Data)
+		
+		switch msg.Type {
+		case types.TxSet:
+			store.Set(msg.Key, msg.Data)
+		case types.TxSetSync:
+			store.SetSync(msg.Key, msg.Data)
+		case types.TxDelete:
+			store.Delete(msg.Key)
+		case types.TxDeleteSync:
+			store.DeleteSync(msg.Key)
+		}
 	}
 	
 	return abcitypes.ResponseDeliverTx{Code: cd}

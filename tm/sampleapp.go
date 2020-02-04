@@ -65,7 +65,7 @@ func prefixKey(key []byte) []byte {
 	return append(kvPairPrefixKey, key...)
 }
 
-type BaseApplication struct {
+type SampleApplication struct {
 	types.BaseApplication
 	DB    *dbm.GoLevelDB
 	state State
@@ -78,9 +78,9 @@ type BaseApplication struct {
 	logger log.Logger
 }
 
-var _ abcitypes.Application = (*BaseApplication)(nil)
+var _ abcitypes.Application = (*SampleApplication)(nil)
 
-func NewBaseApplication(dbDir string) (kvapp *BaseApplication){
+func NewSampleApplication(dbDir string) (kvapp *SampleApplication){
 	db, err := dbm.NewGoLevelDB("bridge_chain", dbDir)
 	if err != nil {
 		panic(err)
@@ -88,18 +88,18 @@ func NewBaseApplication(dbDir string) (kvapp *BaseApplication){
 	
 	state := loadState(db)
 	
-	return &BaseApplication{DB:db,
+	return &SampleApplication{DB:db,
 		state:state,
 		valAddrToPubKeyMap: make(map[string]types.PubKey),
 		logger:             log.NewNopLogger(),
 	}
 }
 
-func (app *BaseApplication) SetLogger(l log.Logger) {
+func (app *SampleApplication) SetLogger(l log.Logger) {
 	app.logger = l
 }
 
-func (app *BaseApplication) Info(req abcitypes.RequestInfo) abcitypes.ResponseInfo {
+func (app *SampleApplication) Info(req abcitypes.RequestInfo) abcitypes.ResponseInfo {
 	res := types.ResponseInfo{
 		Data:             fmt.Sprintf("{\"size\":%v}", app.state.Size),
 		Version:          version.ABCIVersion,
@@ -115,7 +115,7 @@ func isValidatorTx(tx []byte) bool {
 }
 // format is "val:pubkey!power"
 // pubkey is a base64-encoded 32-byte ed25519 key
-func (app *BaseApplication) execValidatorTx(tx []byte) types.ResponseDeliverTx {
+func (app *SampleApplication) execValidatorTx(tx []byte) types.ResponseDeliverTx {
 	tx = tx[len(ValidatorSetChangePrefix):]
 	
 	//get the pubkey and power
@@ -147,7 +147,7 @@ func (app *BaseApplication) execValidatorTx(tx []byte) types.ResponseDeliverTx {
 	return app.updateValidator(types.Ed25519ValidatorUpdate(pubkey, power))
 }
 
-func (app *BaseApplication) updateValidator(v types.ValidatorUpdate) types.ResponseDeliverTx {
+func (app *SampleApplication) updateValidator(v types.ValidatorUpdate) types.ResponseDeliverTx {
 	key := []byte("val:" + string(v.PubKey.Data))
 	
 	pubkey := ed25519.PubKeyEd25519{}
@@ -185,7 +185,7 @@ func (app *BaseApplication) updateValidator(v types.ValidatorUpdate) types.Respo
 	return types.ResponseDeliverTx{Code: code.CodeTypeOK}
 }
 
-func (app *BaseApplication) DeliverTx(req abcitypes.RequestDeliverTx) abcitypes.ResponseDeliverTx {
+func (app *SampleApplication) DeliverTx(req abcitypes.RequestDeliverTx) abcitypes.ResponseDeliverTx {
 	if isValidatorTx(req.Tx) {
 		// update validators in the merkle tree
 		// and in app.ValUpdates
@@ -218,11 +218,11 @@ func (app *BaseApplication) DeliverTx(req abcitypes.RequestDeliverTx) abcitypes.
 	return types.ResponseDeliverTx{Code: code.CodeTypeOK, Events: events}
 }
 
-func (app *BaseApplication) CheckTx(req abcitypes.RequestCheckTx) abcitypes.ResponseCheckTx {
+func (app *SampleApplication) CheckTx(req abcitypes.RequestCheckTx) abcitypes.ResponseCheckTx {
 	return types.ResponseCheckTx{Code: code.CodeTypeOK, GasWanted: 1}
 }
 
-func (app *BaseApplication) Commit() abcitypes.ResponseCommit {
+func (app *SampleApplication) Commit() abcitypes.ResponseCommit {
 	// Using a memdb - just return the big endian size of the db
 	appHash := make([]byte, 8)
 	binary.PutVarint(appHash, app.state.Size)
@@ -232,7 +232,7 @@ func (app *BaseApplication) Commit() abcitypes.ResponseCommit {
 	return types.ResponseCommit{Data: appHash}
 }
 
-func (app *BaseApplication) Query(reqQuery abcitypes.RequestQuery) (resQuery abcitypes.ResponseQuery){
+func (app *SampleApplication) Query(reqQuery abcitypes.RequestQuery) (resQuery abcitypes.ResponseQuery){
 	fmt.Println("* Query : ", reqQuery)
 	
 	if reqQuery.Path == "/val"{
@@ -279,7 +279,7 @@ func (app *BaseApplication) Query(reqQuery abcitypes.RequestQuery) (resQuery abc
 	return resQuery
 }
 
-func (app *BaseApplication) InitChain(req abcitypes.RequestInitChain) abcitypes.ResponseInitChain {
+func (app *SampleApplication) InitChain(req abcitypes.RequestInitChain) abcitypes.ResponseInitChain {
 	for _, v := range req.Validators {
 		r := app.updateValidator(v)
 		if r.IsErr() {
@@ -292,7 +292,7 @@ func (app *BaseApplication) InitChain(req abcitypes.RequestInitChain) abcitypes.
 	return types.ResponseInitChain{}
 }
 
-func (app *BaseApplication) BeginBlock(req abcitypes.RequestBeginBlock) abcitypes.ResponseBeginBlock {
+func (app *SampleApplication) BeginBlock(req abcitypes.RequestBeginBlock) abcitypes.ResponseBeginBlock {
 	// reset valset changes
 	app.ValUpdates = make([]types.ValidatorUpdate, 0)
 	
@@ -313,7 +313,7 @@ func (app *BaseApplication) BeginBlock(req abcitypes.RequestBeginBlock) abcitype
 	return types.ResponseBeginBlock{}
 }
 
-func (app *BaseApplication) EndBlock(req abcitypes.RequestEndBlock) abcitypes.ResponseEndBlock {
+func (app *SampleApplication) EndBlock(req abcitypes.RequestEndBlock) abcitypes.ResponseEndBlock {
 	//fmt.Println("* EndBlock : ", req)
 	return types.ResponseEndBlock{ValidatorUpdates: app.ValUpdates}
 }
@@ -322,7 +322,7 @@ func (app *BaseApplication) EndBlock(req abcitypes.RequestEndBlock) abcitypes.Re
 //---------------------------------------------
 // update validators
 
-func (app *BaseApplication) Validators() (validators []types.ValidatorUpdate) {
+func (app *SampleApplication) Validators() (validators []types.ValidatorUpdate) {
 	itr, err := app.state.db.Iterator(nil, nil)
 	if err != nil {
 		panic(err)

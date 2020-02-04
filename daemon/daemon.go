@@ -8,6 +8,7 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/node"
 	
+	"github.com/rhizomata-io/dist-daemon-tendermint/tm/client"
 	"github.com/rhizomata-io/dist-daemon-tendermint/types"
 )
 
@@ -20,7 +21,7 @@ type Daemon struct {
 
 func NewDaemon(config *cfg.Config, logger log.Logger, tmNode *node.Node) (dm *Daemon) {
 	dm = &Daemon{config:config, logger:logger, tmNode:tmNode}
-	dm.client = NewClient(config, logger)
+	dm.client = client.NewClient(config, logger, types.BasicCdc)
 	return dm
 }
 
@@ -29,9 +30,8 @@ func (dm *Daemon) Start(){
 	
 	
 	go func(){
-		time.Sleep(2*time.Second)
 		for true {
-			time.Sleep(2*time.Second)
+			time.Sleep(1*time.Second)
 			dm.PutHeartbeat()
 			
 			member, err := dm.GetMember(string(dm.tmNode.NodeInfo().ID()))
@@ -42,9 +42,8 @@ func (dm *Daemon) Start(){
 	}()
 	
 	go func(){
-		time.Sleep(5*time.Second)
 		for i:=0;i<100;i++ {
-			time.Sleep(3*time.Second)
+			time.Sleep(2*time.Second)
 			
 			members, err := dm.GetAllMembers()
 			if err != nil {
