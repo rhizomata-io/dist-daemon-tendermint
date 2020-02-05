@@ -3,15 +3,23 @@ package tm
 import (
 	"fmt"
 	cfg "github.com/tendermint/tendermint/config"
-	"github.com/tendermint/tendermint/node"
 	"github.com/tendermint/tendermint/libs/log"
+	"github.com/tendermint/tendermint/node"
 	"github.com/tendermint/tendermint/p2p"
 	"github.com/tendermint/tendermint/privval"
 	"github.com/tendermint/tendermint/proxy"
 	"os"
 )
 
-func NewNode(config *cfg.Config, logger log.Logger) (tmNode *node.Node, err error) {
+type NodeProvider struct {
+	spaces []string
+}
+
+func NewNodeProvider(spaces []string) *NodeProvider {
+	return &NodeProvider{spaces:spaces}
+}
+
+func (provider *NodeProvider)NewNode(config *cfg.Config, logger log.Logger) (tmNode *node.Node, err error) {
 	// Generate node PrivKey
 	nodeKey, err := p2p.LoadOrGenNodeKey(config.NodeKeyFile())
 	if err != nil {
@@ -35,7 +43,8 @@ func NewNode(config *cfg.Config, logger log.Logger) (tmNode *node.Node, err erro
 		oldPV.Upgrade(newPrivValKey, newPrivValState)
 	}
 	
-	dapp := NewDaemonApplication( config, logger, config.DBDir() )
+	dapp := NewDaemonApplication( config, logger, provider.spaces )
+	
 	tmNode, err = node.NewNode(config,
 		privval.LoadOrGenFilePV(newPrivValKey, newPrivValState),
 		nodeKey,

@@ -2,6 +2,7 @@ package types
 
 import (
 	"github.com/tendermint/go-amino"
+	"time"
 )
 
 type Codec = amino.Codec
@@ -22,8 +23,7 @@ func init() {
 
 // RegisterCodec registers concrete types on the Amino codec
 func RegisterCodec(cdc *Codec) {
-	cdc.RegisterConcrete(Member{}, "daemon/member", nil)
 	cdc.RegisterConcrete(TxMsg{}, "daemon/txmsg", nil)
 	cdc.RegisterConcrete(ViewMsg{}, "daemon/viewmsg", nil)
-	
+	cdc.RegisterConcrete(time.Time{}, "time", nil)
 }

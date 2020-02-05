@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/rhizomata-io/dist-daemon-tendermint/daemon"
 	"github.com/rhizomata-io/dist-daemon-tendermint/tm"
 	"os"
 	"path/filepath"
@@ -24,8 +25,11 @@ func main() {
 		cmd.VersionCmd,
 	)
 	
+	spaces := []string{daemon.SpaceDaemon}
+	
+	nodeProvider := tm.NewNodeProvider(spaces)
 	// Create & start node
-	rootCmd.AddCommand(cmd.NewStartCmd(tm.NewNode))
+	rootCmd.AddCommand(cmd.NewStartCmd(nodeProvider.NewNode))
 	
 	cmd := cli.PrepareBaseCmd(rootCmd, "TM", os.ExpandEnv(filepath.Join("./", DefaultBCDir)))
 	

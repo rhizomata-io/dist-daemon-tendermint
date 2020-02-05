@@ -1,6 +1,7 @@
 package store
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"github.com/rhizomata-io/dist-daemon-tendermint/types"
@@ -34,10 +35,21 @@ func (path Path) makeKey(key []byte) []byte {
 	return newKey
 }
 
+func (path Path) extractKey(key []byte) []byte {
+	if bytes.HasPrefix(key, path) {
+		return key[len(path):]
+	}
+	return key
+}
+
 type Store struct {
 	path Path
 	db   dbm.DB
 }
+
+
+var _ types.Store = (*Store)(nil)
+
 
 func NewStore(path string, db dbm.DB) *Store {
 	return &Store{path: valueOf(path), db: db}
@@ -88,27 +100,27 @@ func (store *Store) Iterator(start, end []byte) (dbm.Iterator, error) {
 }
 
 
-func (store *Store) GetMany(start, end []byte) (arrayBytes[]byte, err error) {
+func (store *Store) GetMany(start, end []byte) (kvArrayBytes[]byte, err error) {
 	iterator, err := store.Iterator(start, end)
 	
 	if err != nil {
 		return nil,err
 	}
 	
-	recordsArray := [][]byte{}
+	kvArray := []types.KeyValue{}
+	var kv types.KeyValue
 	
 	for iterator.Valid() {
-		recordsArray = append(recordsArray, iterator.Value())
-		//fmt.Println(" *** Iterator:", string(iterator.Value()))
+		key := store.path.extractKey(iterator.Key())
+		kv = types.KeyValue{Key:key, Value:iterator.Value()}
+		kvArray = append(kvArray, kv)
 		iterator.Next()
 	}
 	
-	arrayBytes, err = types.BasicCdc.MarshalBinaryBare(recordsArray)
+	kvArrayBytes, err = types.BasicCdc.MarshalBinaryBare(kvArray)
 	
-	return arrayBytes, err
+	return kvArrayBytes, err
 }
-
-
 
 type Registry struct {
 	sync.Mutex

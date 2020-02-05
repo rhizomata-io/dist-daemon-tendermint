@@ -16,6 +16,8 @@ type TMClient struct {
 	codec *types.Codec
 }
 
+var _ types.Client = (*TMClient)(nil)
+
 
 func NewClient( config *cfg.Config, logger log.Logger, codec *types.Codec) types.Client {
 	return &TMClient{ config, logger, codec}
@@ -94,7 +96,7 @@ func (client *TMClient) GetObject(msg *types.ViewMsg, obj interface{}) (err erro
 	return err
 }
 
-func (client *TMClient) GetMany(msg *types.ViewMsg, handler types.DataHandler) (err error){
+func (client *TMClient) GetMany(msg *types.ViewMsg, handler types.KVHandler) (err error){
 	data, err := client.Query(msg)
 	
 	if err != nil {
@@ -102,16 +104,16 @@ func (client *TMClient) GetMany(msg *types.ViewMsg, handler types.DataHandler) (
 		return err
 	}
 	
-	bytesArray := [][]byte{}
-	err = client.UnmarshalObject(data, &bytesArray)
+	kvArray := []types.KeyValue{}
+	err = client.UnmarshalObject(data, &kvArray)
 	
 	if err != nil {
 		client.logger.Error("GetMany Unmarshal : ", err)
 		return err
 	}
 	
-	for _, bytes := range bytesArray {
-		if !handler(bytes) {
+	for _, kv := range kvArray {
+		if !handler(kv.Key, kv.Value) {
 			break
 		}
 	}

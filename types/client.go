@@ -2,7 +2,7 @@ package types
 
 
 // DataHandler data handler for GetMany
-type DataHandler func(data []byte) bool
+type KVHandler func(key []byte, value []byte) bool
 
 
 type Client interface {
@@ -11,6 +11,6 @@ type Client interface {
 	Commit() error
 	Query(msg *ViewMsg) ([]byte, error)
 	GetObject(msg *ViewMsg, obj interface{}) (err error)
-	GetMany(msg *ViewMsg, handler DataHandler) (err error)
+	GetMany(msg *ViewMsg, handler KVHandler) (err error)
 	UnmarshalObject(bz []byte, ptr interface{}) error
 }

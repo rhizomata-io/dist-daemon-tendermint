@@ -19,24 +19,21 @@ const (
 // 	MethodPutHeartbeat = "daemon/heartbeat"
 // )
 
-const (
-	PathMember = "$sys/member"
-)
-
 type TxMsg struct {
-	Type TxType
-	Path string
-	Key  []byte
-	Data []byte
+	Type  TxType
+	Space string
+	Path  string
+	Key   []byte
+	Data  []byte
 }
 
-func NewTxMsg(typ TxType, path string, key string, data []byte) *TxMsg {
-	msg := TxMsg{Type: typ, Path: path, Key: []byte(key), Data: data}
+func NewTxMsg(typ TxType, space string, path string, key string, data []byte) *TxMsg {
+	msg := TxMsg{Type: typ, Space: space, Path: path, Key: []byte(key), Data: data}
 	return &msg
 }
 
-func EncodeTx(typ TxType, path string, key string, data []byte) ([]byte, error) {
-	msg := TxMsg{Type: typ, Path: path, Key: []byte(key), Data: data}
+func EncodeTx(typ TxType, space string, path string, key string, data []byte) ([]byte, error) {
+	msg := TxMsg{Type: typ, Space: space, Path: path, Key: []byte(key), Data: data}
 	return BasicCdc.MarshalBinaryBare(msg)
 }
 
@@ -52,22 +49,23 @@ func DecodeTxMsg(msgBytes []byte) (*TxMsg, error) {
 
 type ViewMsg struct {
 	Type  ViewType
+	Space string
 	Path  string
 	Start []byte
 	End   []byte
 }
 
-func NewViewMsgOne(path string, key string) *ViewMsg {
-	msg := ViewMsg{Type: GetOne, Path: path, Start: []byte(key)}
+func NewViewMsgOne(space string, path string, key string) *ViewMsg {
+	msg := ViewMsg{Type: GetOne, Space: space, Path: path, Start: []byte(key)}
 	return &msg
 }
 
-func NewViewMsgMany(path string, start string, end string) *ViewMsg {
+func NewViewMsgMany(space string, path string, start string, end string) *ViewMsg {
 	var endBytes []byte
 	if len(end) > 0 {
 		endBytes = []byte(end)
 	}
-	msg := ViewMsg{Type: GetMany, Path: path, Start: []byte(start), End: endBytes}
+	msg := ViewMsg{Type: GetMany, Space: space, Path: path, Start: []byte(start), End: endBytes}
 	return &msg
 }
 
