@@ -6,6 +6,9 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
+	
 	"github.com/tendermint/tendermint/abci/example/code"
 	abcitypes "github.com/tendermint/tendermint/abci/types"
 	cfg "github.com/tendermint/tendermint/config"
@@ -14,8 +17,6 @@ import (
 	tmtypes "github.com/tendermint/tendermint/types"
 	"github.com/tendermint/tendermint/version"
 	dbm "github.com/tendermint/tm-db"
-	"strconv"
-	"strings"
 )
 
 var (
@@ -78,7 +79,13 @@ func NewBaseApplication(config *cfg.Config, logger log.Logger) (bapp *BaseApplic
 	
 	state := loadState(db)
 	
-	bapp = &BaseApplication{config: config, logger: logger, state: state}
+	bapp = &BaseApplication{
+		config:             config,
+		logger:             logger,
+		state:              state,
+		ValUpdates:         []abcitypes.ValidatorUpdate{},
+		valAddrToPubKeyMap: make(map[string]abcitypes.PubKey),
+	}
 	
 	return bapp
 }
@@ -151,7 +158,7 @@ func (app *BaseApplication) isValidatorTx(tx []byte) bool {
 func (app *BaseApplication) execValidatorTx(tx []byte) abcitypes.ResponseDeliverTx {
 	tx = tx[len(ValidatorSetChangePrefix):]
 	
-	//get the pubkey and power
+	// get the pubkey and power
 	pubKeyAndPower := strings.Split(string(tx), "!")
 	if len(pubKeyAndPower) != 2 {
 		return abcitypes.ResponseDeliverTx{

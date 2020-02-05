@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"github.com/rhizomata-io/dist-daemon-tendermint/daemon"
+	dmcfg "github.com/rhizomata-io/dist-daemon-tendermint/daemon/config"
 	"io"
 	"os"
 
@@ -121,7 +122,15 @@ func NewStartCmd(nodeProvider nm.Provider) *cobra.Command {
 			}
 			logger.Info("Started node", "nodeInfo", n.Switch().NodeInfo())
 			
-			dm := daemon.NewDaemon(config,logger, n)
+			daemonConfig :=dmcfg.DaemonConfig{
+				ChainID:                config.ChainID(),
+				NodeID:                 string(n.NodeInfo().ID()),
+				NodeName:               config.Moniker,
+				HeartbeatInterval:      2,
+				AliveThresholdSeconds:  4,
+			}
+			
+			dm := daemon.NewDaemon(config,logger, n, daemonConfig)
 			dm.Start()
 			// Run forever.
 			select {}

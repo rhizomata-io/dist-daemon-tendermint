@@ -1,13 +1,15 @@
 package main
 
 import (
-	"github.com/rhizomata-io/dist-daemon-tendermint/daemon"
-	"github.com/rhizomata-io/dist-daemon-tendermint/tm"
 	"os"
 	"path/filepath"
 	
-	cmd "github.com/rhizomata-io/dist-daemon-tendermint/cmd/commands"
+	"github.com/rhizomata-io/dist-daemon-tendermint/daemon/config"
+	"github.com/rhizomata-io/dist-daemon-tendermint/tm"
+	
 	"github.com/tendermint/tendermint/libs/cli"
+	
+	cmd "github.com/rhizomata-io/dist-daemon-tendermint/cmd/commands"
 )
 
 const (
@@ -25,7 +27,7 @@ func main() {
 		cmd.VersionCmd,
 	)
 	
-	spaces := []string{daemon.SpaceDaemon}
+	spaces := []string{config.SpaceDaemon}
 	
 	nodeProvider := tm.NewNodeProvider(spaces)
 	// Create & start node

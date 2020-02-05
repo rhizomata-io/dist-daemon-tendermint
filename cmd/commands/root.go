@@ -11,11 +11,12 @@ import (
 	"github.com/tendermint/tendermint/libs/cli"
 	tmflags "github.com/tendermint/tendermint/libs/cli/flags"
 	"github.com/tendermint/tendermint/libs/log"
+	dmlog "github.com/rhizomata-io/dist-daemon-tendermint/tm/log"
 )
 
 var (
 	config = cfg.DefaultConfig()
-	logger = log.NewTMLogger(log.NewSyncWriter(os.Stdout))
+	logger = dmlog.NewTMLogger(log.NewSyncWriter(os.Stdout))
 )
 
 func init() {

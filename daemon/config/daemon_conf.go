@@ -1,5 +1,10 @@
 package config
 
+
+const (
+	SpaceDaemon = "daemon"
+)
+
 type DaemonConfig struct {
 	ChainID  string
 	NodeID   string
@@ -8,7 +13,7 @@ type DaemonConfig struct {
 	HeartbeatInterval uint
 	
 	// CheckHeartbeatInterval Heartbeat check Interval
-	CheckHeartbeatInterval uint
+	// CheckHeartbeatInterval uint
 	
 	// AliveThreasholdSecond Heartbeat time Threshold
 	AliveThresholdSeconds uint

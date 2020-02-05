@@ -1,6 +1,8 @@
 package client
 
 import (
+	"errors"
+	
 	cfg "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/libs/bytes"
 	"github.com/tendermint/tendermint/libs/log"
@@ -32,7 +34,7 @@ func (client *TMClient) BroadcastTxSync(msg *types.TxMsg) (err error) {
 	
 	_, err = core.BroadcastTxSync(&rpctypes.Context{}, msgBytes)
 	if err != nil {
-		client.logger.Error("BroadcastTxSync : ", err)
+		client.logger.Error("TMClient#BroadcastTxSync ", err)
 		return err
 	}
 	return err
@@ -41,13 +43,13 @@ func (client *TMClient) BroadcastTxSync(msg *types.TxMsg) (err error) {
 func (client *TMClient) BroadcastTxAsync(msg *types.TxMsg) (err error) {
 	msgBytes, err := types.EncodeTxMsg(msg)
 	if err != nil {
-		client.logger.Error("MarshalBinaryBare : Msg : ", err)
+		client.logger.Error("TMClient#BroadcastTxAsync : EncodeTxMsg", err)
 		return err
 	}
 	
 	_, err = core.BroadcastTxAsync(&rpctypes.Context{}, msgBytes)
 	if err != nil {
-		client.logger.Error("BroadcastTxAsync : ", err)
+		client.logger.Error("TMClient#BroadcastTxAsync", err)
 		return err
 	}
 	return err
@@ -65,14 +67,14 @@ func (client *TMClient) Commit() (err error) {
 func (client *TMClient) Query(msg *types.ViewMsg) (data []byte, err error) {
 	msgBytes, err := types.EncodeViewMsg(msg)
 	if err != nil {
-		client.logger.Error("EncodeViewMsg : Msg : ", err)
+		client.logger.Error("TMClient#Query : EncodeViewMsg", err)
 		return data, err
 	}
 	
 	res, err := core.ABCIQuery(&rpctypes.Context{}, msg.Path, bytes.HexBytes(msgBytes), 0, false)
 	
 	if err != nil {
-		client.logger.Error("Query : Msg : ", err)
+		client.logger.Error("TMClient#Query : ABCIQuery", err)
 	}
 	
 	return res.Response.Value, err
@@ -83,14 +85,14 @@ func (client *TMClient) GetObject(msg *types.ViewMsg, obj interface{}) (err erro
 	data, err := client.Query(msg)
 	
 	if err != nil {
-		client.logger.Error("GetObject : ", err)
+		client.logger.Error("TMClient#GetObject : ", err)
 		return err
 	}
 	
 	err = client.UnmarshalObject(data, obj)
 	
 	if err != nil {
-		client.logger.Error("GetObject Unmarshal : ", err)
+		client.logger.Error("TMClient#GetObject Unmarshal : ", err)
 		return err
 	}
 	return err
@@ -100,7 +102,7 @@ func (client *TMClient) GetMany(msg *types.ViewMsg, handler types.KVHandler) (er
 	data, err := client.Query(msg)
 	
 	if err != nil {
-		client.logger.Error("GetMany : ", err)
+		client.logger.Error("TMClient#GetMany : ", err)
 		return err
 	}
 	
@@ -108,7 +110,7 @@ func (client *TMClient) GetMany(msg *types.ViewMsg, handler types.KVHandler) (er
 	err = client.UnmarshalObject(data, &kvArray)
 	
 	if err != nil {
-		client.logger.Error("GetMany Unmarshal : ", err)
+		client.logger.Error("TMClient#GetMany Unmarshal : ", err)
 		return err
 	}
 	
@@ -121,5 +123,18 @@ func (client *TMClient) GetMany(msg *types.ViewMsg, handler types.KVHandler) (er
 }
 
 func (client *TMClient) UnmarshalObject(bz []byte, ptr interface{}) error {
-	return client.codec.UnmarshalBinaryBare(bz, ptr)
+	if len(bz) == 0 {
+		err := errors.New("TMClient#UnmarshalObject []byte data is empty")
+		// fmt.Println("[ERROR] ", err)
+		return err
+	}
+	
+	err := client.codec.UnmarshalBinaryBare(bz, ptr)
+	
+	if err != nil {
+		err := errors.New("TMClient#UnmarshalObject : " + err.Error())
+		// fmt.Println("[ERROR] ", err)
+		return err
+	}
+	return err
 }

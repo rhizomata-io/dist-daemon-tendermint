@@ -1,17 +1,17 @@
 package cluster
 
 import (
-	"github.com/rhizomata-io/dist-daemon-tendermint/types"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
+	
+	"github.com/rhizomata-io/dist-daemon-tendermint/types"
 )
-
 
 func init() {
 	types.BasicCdc.RegisterConcrete(Member{}, "daemon/member", nil)
 }
-
 
 // Cluster ..
 type Cluster struct {
@@ -21,7 +21,6 @@ type Cluster struct {
 	localMember *Member
 	leader      *Member
 }
-
 
 func newCluster(name string) *Cluster {
 	cluster := Cluster{name: name}
@@ -107,23 +106,22 @@ func (cluster *Cluster) Local() *Member {
 	return cluster.localMember
 }
 
-
 // Member member info
 type Member struct {
-	NodeID     string `json:"nodeid"`
-	Name       string `json:"name"`
-	heartbeat  time.Time `json:"heartbeat"`
-	leader     bool // transient field
-	alive      bool // transient field
-	local      bool // transient field
+	NodeID    string    `json:"nodeid"`
+	Name      string    `json:"name"`
+	heartbeat time.Time `json:"heartbeat"`
+	leader    bool      // transient field
+	alive     bool      // transient field
+	local     bool      // transient field
 }
 
 var (
 	NilMember = Member{}
 )
 
-func NewMember(name string, nodeid string) *Member{
-	return &Member{NodeID:nodeid, Name:name}
+func NewMember(name string, nodeid string) *Member {
+	return &Member{NodeID: nodeid, Name: name}
 }
 
 // IsLeader return whether member is leader
@@ -166,9 +164,8 @@ func (m *Member) Heartbeat() time.Time {
 	return m.heartbeat
 }
 
-
 // String implement fmt.Stringer
 func (m *Member) String() string {
 	return strings.TrimSpace(fmt.Sprintf(`Member[%s:%s] %s alive=%t, leader=%t`,
-		m.Name, m.NodeID, m.Heartbeat, m.alive, m.leader))
+		m.Name, m.NodeID, m.heartbeat, m.alive, m.leader))
 }

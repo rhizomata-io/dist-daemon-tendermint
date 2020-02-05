@@ -14,6 +14,10 @@ const (
 	pathKeySeparator = byte('!')
 )
 
+var (
+	endBytes =[]byte("~~~~")
+)
+
 type Path []byte
 
 //ValueOf
@@ -31,13 +35,15 @@ func (path Path) makeKeyString(key string) []byte {
 
 func (path Path) makeKey(key []byte) []byte {
 	newKey := append(path, pathKeySeparator)
-	newKey = append(newKey, key...)
+	if key != nil {
+		newKey = append(newKey, key...)
+	}
 	return newKey
 }
 
 func (path Path) extractKey(key []byte) []byte {
 	if bytes.HasPrefix(key, path) {
-		return key[len(path):]
+		return key[len(path)+1:]
 	}
 	return key
 }
@@ -91,17 +97,21 @@ func (store *Store) DeleteSync(key []byte) error {
 
 func (store *Store) Iterator(start, end []byte) (dbm.Iterator, error) {
 	startBytes := store.path.makeKey(start)
-	var endBytes []byte
+	var endBts []byte
 	if len(end) > 0 {
-		endBytes = store.path.makeKey(end)
+		endBts = store.path.makeKey(end)
+	} else {
+		endBts = store.path.makeKey(endBytes)
 	}
 	
-	return store.db.Iterator(startBytes, endBytes)
+	return store.db.Iterator(startBytes, endBts)
 }
 
 
 func (store *Store) GetMany(start, end []byte) (kvArrayBytes[]byte, err error) {
 	iterator, err := store.Iterator(start, end)
+	// s, e := iterator.Domain()
+	// fmt.Println("Store # GetMany: start=", string(s), ", end=", string(e))
 	
 	if err != nil {
 		return nil,err
@@ -114,6 +124,8 @@ func (store *Store) GetMany(start, end []byte) (kvArrayBytes[]byte, err error) {
 		key := store.path.extractKey(iterator.Key())
 		kv = types.KeyValue{Key:key, Value:iterator.Value()}
 		kvArray = append(kvArray, kv)
+		
+		// fmt.Println("Store # GetMany:", string(iterator.Key()), string(iterator.Value()))
 		iterator.Next()
 	}
 	
