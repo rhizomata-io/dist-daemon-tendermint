@@ -14,20 +14,33 @@ type EventHandler func(event Event)
 
 type EventBus struct {
 	sync.Mutex
-	listeners map[EventType][]EventHandler
+	name      string
+	listeners map[EventType]map[string]EventHandler
 }
 
-func NewEventBus() *EventBus {
-	return &EventBus{listeners: make(map[EventType][]EventHandler)}
+func NewEventBus(name string) *EventBus {
+	return &EventBus{name: name, listeners: make(map[EventType]map[string]EventHandler)}
 }
 
-func (bus *EventBus) Subscribe(typ EventType, handler EventHandler) {
+func (bus *EventBus) Subscribe(typ EventType, name string, handler EventHandler) {
 	bus.Lock()
 	handlers, ok := bus.listeners[typ]
 	if !ok {
-		handlers = []EventHandler{}
+		handlers = make(map[string]EventHandler)
+		bus.listeners[typ] = handlers
 	}
-	handlers = append(handlers, handler)
+	handlers[name] = handler
+	bus.Unlock()
+}
+
+func (bus *EventBus) Unsubscribe(typ EventType, name string, handler EventHandler) {
+	bus.Lock()
+	handlers, ok := bus.listeners[typ]
+	if !ok {
+		handlers = make(map[string]EventHandler)
+		bus.listeners[typ] = handlers
+	}
+	handlers[name] = handler
 	bus.Unlock()
 }
 
@@ -42,14 +55,12 @@ func (bus *EventBus) Publish(event Event) {
 	bus.Unlock()
 }
 
-
 var (
-	globalEventBus = NewEventBus()
+	globalEventBus = NewEventBus("global")
 )
 
-
-func Subscribe(typ EventType, handler EventHandler) {
-	globalEventBus.Subscribe(typ,handler )
+func Subscribe(typ EventType, name string, handler EventHandler) {
+	globalEventBus.Subscribe(typ, name, handler)
 }
 
 func Publish(event Event) {

@@ -17,6 +17,9 @@ import (
 	tmtypes "github.com/tendermint/tendermint/types"
 	"github.com/tendermint/tendermint/version"
 	dbm "github.com/tendermint/tm-db"
+	
+	"github.com/rhizomata-io/dist-daemon-tendermint/tm/events"
+	"github.com/rhizomata-io/dist-daemon-tendermint/types"
 )
 
 var (
@@ -142,10 +145,12 @@ func (app *BaseApplication) BeginBlock(req abcitypes.RequestBeginBlock) abcitype
 		}
 	}
 	
+	types.Publish(events.BeginBlockEvent{Height:req.Header.Height, Time:req.Header.Time})
 	return abcitypes.ResponseBeginBlock{}
 }
 
 func (app *BaseApplication) EndBlock(req abcitypes.RequestEndBlock) abcitypes.ResponseEndBlock {
+	types.Publish(events.EndBlockEvent{Height:req.GetHeight(), Size:req.Size()})
 	return abcitypes.ResponseEndBlock{ValidatorUpdates: app.ValUpdates}
 }
 

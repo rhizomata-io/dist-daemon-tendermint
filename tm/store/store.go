@@ -134,6 +134,26 @@ func (store *Store) GetMany(start, end []byte) (kvArrayBytes[]byte, err error) {
 	return kvArrayBytes, err
 }
 
+func (store *Store) GetKeys(start, end []byte) (keyArrayBytes[]byte, err error) {
+	iterator, err := store.Iterator(start, end)
+	
+	if err != nil {
+		return nil,err
+	}
+	
+	keyArray := []string{}
+	
+	for iterator.Valid() {
+		key := string(store.path.extractKey(iterator.Key()))
+		keyArray = append(keyArray, key)
+		iterator.Next()
+	}
+	
+	keyArrayBytes, err = types.BasicCdc.MarshalBinaryBare(keyArray)
+	
+	return keyArrayBytes, err
+}
+
 type Registry struct {
 	sync.Mutex
 	pathStores map[string]*Store

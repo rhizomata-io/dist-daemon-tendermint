@@ -2,9 +2,11 @@ package tm
 
 import (
 	"fmt"
-	"github.com/rhizomata-io/dist-daemon-tendermint/tm/store"
+	
 	cfg "github.com/tendermint/tendermint/config"
 	dbm "github.com/tendermint/tm-db"
+	
+	"github.com/rhizomata-io/dist-daemon-tendermint/tm/store"
 	
 	"github.com/tendermint/tendermint/abci/example/code"
 	abcitypes "github.com/tendermint/tendermint/abci/types"
@@ -85,16 +87,16 @@ func (app *DaemonApp) DeliverTx(req abcitypes.RequestDeliverTx) abcitypes.Respon
 	
 	app.IncreaseTxSize()
 	
-	events := []abcitypes.Event{
-		//{
-		//	Type: "app",
-		//	Attributes: []kv.Pair{
-		//		{Key: []byte("key"), Value: key},
-		//	},
-		//},
-	}
+	// events := []abcitypes.Event{
+	// 	{
+	// 		Type: types.TxTypeString(msg.Type),
+	// 		Attributes: []kv.Pair{
+	// 			{Key: []byte(msg.GetEventKey()), Value: msg.Key},
+	// 		},
+	// 	},
+	// }
 	
-	return abcitypes.ResponseDeliverTx{Code: cd, Events: events}
+	return abcitypes.ResponseDeliverTx{Code: cd, Events: nil}
 }
 
 func (app *DaemonApp) Query(reqQuery abcitypes.RequestQuery) (resQuery abcitypes.ResponseQuery) {
@@ -116,7 +118,31 @@ func (app *DaemonApp) Query(reqQuery abcitypes.RequestQuery) (resQuery abcitypes
 		return resQuery
 	}
 	
-	if msg.Type == types.GetOne {
+	if msg.Type == types.Has {
+		ok, err := store.Has(msg.Start)
+		
+		if err != nil {
+			app.logger.Error("[DMA] Query Has "+string(msg.Start), err)
+			resQuery.Log = err.Error()
+			return resQuery
+		}
+		
+		if ok {
+			resQuery.Log = "exists"
+		} else {
+			resQuery.Log = "does not exist"
+		}
+		
+		bytes, err := types.BasicCdc.MarshalBinaryBare(ok)
+		
+		if err != nil {
+			app.logger.Error("[DMA] Query Has Unmarshal", err)
+			resQuery.Log = err.Error()
+			return resQuery
+		}
+		
+		resQuery.Value = bytes
+	} else if msg.Type == types.GetOne {
 		bytes, err := store.Get(msg.Start)
 		if err != nil {
 			app.logger.Error("[DMA] Query GetOne "+string(msg.Start), err)
@@ -147,6 +173,24 @@ func (app *DaemonApp) Query(reqQuery abcitypes.RequestQuery) (resQuery abcitypes
 		}
 		
 		resQuery.Value = bytes
+	} else if msg.Type == types.GetMany {
+		bytes, err := store.GetKeys(msg.Start, msg.End)
+		
+		if err != nil {
+			app.logger.Error(fmt.Sprintf("[DMA] Query GetKeys %s - %s ", msg.Start, msg.End), err)
+			resQuery.Log = err.Error()
+			return resQuery
+		}
+		
+		if bytes == nil {
+			resQuery.Log = "does not exist"
+		} else {
+			resQuery.Log = "exists"
+		}
+		
+		resQuery.Value = bytes
+	} else {
+		app.logger.Error(fmt.Sprintf("[DMA] Unknown ViewType %d ", msg.Type), err)
 	}
 	
 	return resQuery

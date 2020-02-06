@@ -64,6 +64,27 @@ func (client *TMClient) Commit() (err error) {
 }
 
 
+func (client *TMClient) Has(msg *types.ViewMsg) (ok bool, err error){
+	if msg.Type != types.Has {
+		return ok, errors.New("[TMClient] Has needs ViewType Has")
+	}
+	
+	data, err := client.Query(msg)
+	
+	if err != nil {
+		client.logger.Error("[TMClient] Has : ", err)
+		return ok, err
+	}
+	
+	err = client.UnmarshalObject(data, &ok)
+	
+	if err != nil {
+		client.logger.Error("[TMClient] Has Unmarshal : ", err)
+		return ok, err
+	}
+	return ok, err
+}
+
 func (client *TMClient) Query(msg *types.ViewMsg) (data []byte, err error) {
 	msgBytes, err := types.EncodeViewMsg(msg)
 	if err != nil {
@@ -82,6 +103,9 @@ func (client *TMClient) Query(msg *types.ViewMsg) (data []byte, err error) {
 
 
 func (client *TMClient) GetObject(msg *types.ViewMsg, obj interface{}) (err error){
+	if msg.Type != types.GetOne {
+		return errors.New("[TMClient] GetObject needs ViewType GetOne")
+	}
 	data, err := client.Query(msg)
 	
 	if err != nil {
@@ -99,6 +123,9 @@ func (client *TMClient) GetObject(msg *types.ViewMsg, obj interface{}) (err erro
 }
 
 func (client *TMClient) GetMany(msg *types.ViewMsg, handler types.KVHandler) (err error){
+	if msg.Type != types.GetMany {
+		return errors.New("[TMClient] GetMany needs ViewType GetMany")
+	}
 	data, err := client.Query(msg)
 	
 	if err != nil {
@@ -121,6 +148,35 @@ func (client *TMClient) GetMany(msg *types.ViewMsg, handler types.KVHandler) (er
 	}
 	return err
 }
+
+
+func (client *TMClient) GetKeys(msg *types.ViewMsg) (keys []string, err error){
+	if msg.Type != types.GetKeys {
+		return nil, errors.New("[TMClient] GetKeys needs ViewType GetKeys")
+	}
+	
+	data, err := client.Query(msg)
+	
+	if err != nil {
+		client.logger.Error("[TMClient] GetKeys : ", err)
+		return nil, err
+	}
+	
+	keys = []string{}
+	err = client.UnmarshalObject(data, &keys)
+	
+	if err != nil {
+		client.logger.Error("[TMClient] GetKeys Unmarshal : ", err)
+		return nil, err
+	}
+	
+	return keys, err
+}
+
+
+// func (client *TMClient) Subscribe(msg *types.ViewMsg) (keys []string, err error){
+// 	core.Subscribe(&rpctypes.Context{}, )
+// }
 
 func (client *TMClient) UnmarshalObject(bz []byte, ptr interface{}) error {
 	if len(bz) == 0 {
