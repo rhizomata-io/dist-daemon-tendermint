@@ -49,7 +49,7 @@ func (app *DaemonApp) getSpace(name string) *store.Registry {
 	return storeRegistry
 }
 
-func (app *DaemonApp) getStoreRegistryAny(space string, path string) *store.Store {
+func (app *DaemonApp) getSpaceStoreAny(space string, path string) *store.Store {
 	storeRegistry := app.getSpace(space)
 	return storeRegistry.GetOrMakeStore(path)
 }
@@ -66,10 +66,10 @@ func (app *DaemonApp) DeliverTx(req abcitypes.RequestDeliverTx) abcitypes.Respon
 	msg, err := types.DecodeTxMsg(req.Tx)
 	
 	if err != nil {
-		app.logger.Error("DeliverTx", err)
+		app.logger.Error("[DMA]DeliverTx", err)
 		cd = code.CodeTypeEncodingError
 	} else {
-		store := app.getStoreRegistryAny(msg.Space, msg.Path)
+		store := app.getSpaceStoreAny(msg.Space, msg.Path)
 		
 		switch msg.Type {
 		case types.TxSet:
@@ -100,7 +100,7 @@ func (app *DaemonApp) DeliverTx(req abcitypes.RequestDeliverTx) abcitypes.Respon
 func (app *DaemonApp) Query(reqQuery abcitypes.RequestQuery) (resQuery abcitypes.ResponseQuery) {
 	msg, err := types.DecodeViewMsg(reqQuery.Data)
 	if err != nil {
-		app.logger.Error("DecodeViewMsg ", err)
+		app.logger.Error("[DMA] DecodeViewMsg ", err)
 		resQuery.Log = err.Error()
 		return resQuery
 	}
@@ -111,7 +111,7 @@ func (app *DaemonApp) Query(reqQuery abcitypes.RequestQuery) (resQuery abcitypes
 	resQuery.Key = reqQuery.Data
 	
 	if err != nil {
-		app.logger.Error("Unknown Store "+reqQuery.Path, err)
+		app.logger.Error("[DMA] Unknown Store "+reqQuery.Path, err)
 		resQuery.Log = err.Error()
 		return resQuery
 	}
@@ -119,7 +119,7 @@ func (app *DaemonApp) Query(reqQuery abcitypes.RequestQuery) (resQuery abcitypes
 	if msg.Type == types.GetOne {
 		bytes, err := store.Get(msg.Start)
 		if err != nil {
-			app.logger.Error("Query GetOne "+string(msg.Start), err)
+			app.logger.Error("[DMA] Query GetOne "+string(msg.Start), err)
 			resQuery.Log = err.Error()
 			return resQuery
 		}
@@ -135,7 +135,7 @@ func (app *DaemonApp) Query(reqQuery abcitypes.RequestQuery) (resQuery abcitypes
 		bytes, err := store.GetMany(msg.Start, msg.End)
 		
 		if err != nil {
-			app.logger.Error(fmt.Sprintf("Query GetMany %s - %s ", msg.Start, msg.End), err)
+			app.logger.Error(fmt.Sprintf("[DMA] Query GetMany %s - %s ", msg.Start, msg.End), err)
 			resQuery.Log = err.Error()
 			return resQuery
 		}

@@ -83,12 +83,11 @@ func (manager *Manager) Start() {
 				manager.logger.Error("[FATAL] Cannot check heartbeats.", err)
 			}
 			
-			manager.checkLeader()
+			manager.checkLeader(changed)
 			
 			if changed {
 				manager.onMemberChanged()
 			}
-			
 		}
 	}()
 	
@@ -130,21 +129,27 @@ func (manager *Manager)handleHeartbeat(nodeid string, tm time.Time) (changed boo
 	
 	changed = oldAlive != member.IsAlive()
 	
-	// fmt.Println("   -- ", nodeid , "3 IsAlive=", member.IsAlive() , ", changed=" , changed)
+	//fmt.Println("   -- ", nodeid , "3 IsAlive=", member.IsAlive() , ", changed=" , changed)
 	
 	return changed
 }
 
 
-func (manager *Manager)checkLeader() {
-	leaderID, err := manager.dao.GetLeader()
-	if err != nil {
-		manager.logger.Error("Get Leader ", err)
+func (manager *Manager)checkLeader(memberChanged bool) {
+	if manager.cluster.leader != nil && manager.cluster.leader.IsLocal() {
+		return
 	}
 	
 	oldLeader := manager.cluster.leader
 	
-	fmt.Println("   -- 1 leaderID=", leaderID , " oldLeader=", oldLeader)
+	if oldLeader != nil && !memberChanged{
+		return
+	}
+	
+	leaderID, err := manager.dao.GetLeader()
+	if err != nil {
+		manager.logger.Error("Get Leader ", err)
+	}
 	
 	if oldLeader != nil {
 		if oldLeader.NodeID == leaderID {
@@ -182,20 +187,23 @@ func (manager *Manager)checkLeader() {
 func (manager *Manager) electLeader() *Member {
 	members := manager.cluster.GetSortedMembers()
 	
-	fmt.Println("****** electLeader:: len(members) ", len(members))
+	//fmt.Println("****** electLeader:: len(members) ", len(members))
 	
 	for _, id := range members {
 		memb := manager.cluster.GetMember(id)
-		fmt.Println("    ****** electLeader:: member ", id, memb)
+		//fmt.Println("    ****** electLeader:: member ", id, memb)
 		if memb.IsAlive() {
-			manager.dao.PutLeader(id)
+			if memb.IsLocal() {
+				manager.dao.PutLeader(id)
+			}
 			return memb
 		}
 	}
-	
-	local := manager.cluster.Local()
-	manager.dao.PutLeader(local.NodeID)
-	return local
+	//
+	//local := manager.cluster.Local()
+	//manager.dao.PutLeader(local.NodeID)
+	manager.logger.Error("No Leader elected.")
+	return nil
 }
 
 

@@ -29,7 +29,7 @@ func (dao *DAO) PutMember(member *Member) (err error) {
 		dao.logger.Error("PutMember marshal", err)
 		return err
 	}
-	
+	//fmt.Println(" -------- PutMember :", member)
 	msg := types.NewTxMsg(types.TxSet, config.SpaceDaemon, PathMember, member.NodeID, bytes)
 	
 	return dao.client.BroadcastTxSync(msg)
@@ -46,6 +46,7 @@ func (dao *DAO) GetMember(nodeID string) (member Member, err error) {
 // PutLeader set leader
 func (dao *DAO) PutLeader(leader string) (err error) {
 	msg := types.NewTxMsg(types.TxSet, config.SpaceDaemon, PathLeader, "", []byte(leader))
+	//fmt.Println(" -------- PutLeader :", leader)
 	return dao.client.BroadcastTxSync(msg)
 }
 
@@ -87,7 +88,7 @@ func (dao *DAO) PutHeartbeat(nodeID string) (err error) {
 	
 	msg := types.NewTxMsg(types.TxSet, config.SpaceDaemon, PathHeartbeat, nodeID, bytes)
 	
-	return dao.client.BroadcastTxSync(msg)
+	return dao.client.BroadcastTxAsync(msg)
 }
 
 func (dao *DAO) GetHeartbeats(handler func(nodeid string, time time.Time)) (err error) {
