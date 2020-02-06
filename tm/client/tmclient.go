@@ -136,3 +136,14 @@ func (client *TMClient) UnmarshalObject(bz []byte, ptr interface{}) error {
 	}
 	return err
 }
+
+func (client *TMClient) MarshalObject(ptr interface{}) (bytes[]byte, err error) {
+	bytes, err = client.codec.MarshalBinaryBare(ptr)
+	
+	if err != nil {
+		err := errors.New("[TMClient] MarshalObject : " + err.Error())
+		return nil, err
+	}
+	return bytes, err
+}
+

@@ -13,4 +13,5 @@ type Client interface {
 	GetObject(msg *ViewMsg, obj interface{}) (err error)
 	GetMany(msg *ViewMsg, handler KVHandler) (err error)
 	UnmarshalObject(bz []byte, ptr interface{}) error
+	MarshalObject(ptr interface{}) ([]byte, error)
 }

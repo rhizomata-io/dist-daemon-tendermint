@@ -3,6 +3,12 @@ package types
 type ViewType uint8
 type TxType uint8
 
+
+var (
+	LastKeySuffix = "~~~"
+	LastKeySuffixBytes = []byte(LastKeySuffix)
+)
+
 const (
 	GetOne  = ViewType(1)
 	GetMany = ViewType(2)
