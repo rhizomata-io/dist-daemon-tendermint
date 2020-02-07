@@ -2,6 +2,7 @@ package tm
 
 import (
 	"fmt"
+	"github.com/rhizomata-io/dist-daemon-tendermint/tm/events"
 	
 	cfg "github.com/tendermint/tendermint/config"
 	dbm "github.com/tendermint/tm-db"
@@ -87,16 +88,9 @@ func (app *DaemonApp) DeliverTx(req abcitypes.RequestDeliverTx) abcitypes.Respon
 	
 	app.IncreaseTxSize()
 	
-	// events := []abcitypes.Event{
-	// 	{
-	// 		Type: types.TxTypeString(msg.Type),
-	// 		Attributes: []kv.Pair{
-	// 			{Key: []byte(msg.GetEventKey()), Value: msg.Key},
-	// 		},
-	// 	},
-	// }
+	events.PublishTxEvent(*msg)
 	
-	return abcitypes.ResponseDeliverTx{Code: cd, Events: nil}
+	return abcitypes.ResponseDeliverTx{Code: cd}
 }
 
 func (app *DaemonApp) Query(reqQuery abcitypes.RequestQuery) (resQuery abcitypes.ResponseQuery) {

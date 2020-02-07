@@ -1,30 +1,30 @@
 package cluster
 
 import (
-	"github.com/rhizomata-io/dist-daemon-tendermint/daemon/config"
+	"fmt"
+	"github.com/rhizomata-io/dist-daemon-tendermint/daemon/common"
 	"github.com/rhizomata-io/dist-daemon-tendermint/types"
 	"github.com/tendermint/tendermint/libs/log"
-	"fmt"
 	"time"
 )
 
 type Manager struct {
-	config              config.DaemonConfig
-	logger              log.Logger
-	cluster             *Cluster
-	dao                 *DAO
-	running             bool
+	config  common.DaemonConfig
+	logger  log.Logger
+	cluster *Cluster
+	dao     *DAO
+	running bool
 }
 
-func NewManager(config config.DaemonConfig, logger log.Logger, client types.Client) *Manager {
+func NewManager(config common.DaemonConfig, logger log.Logger, client types.Client) *Manager {
 	cluster := newCluster(config.ChainID)
-	dao := DAO{config:config, logger: logger, client: client}
+	dao := DAO{config: config, logger: logger, client: client}
 	
 	manager := &Manager{
-		config:              config,
-		logger:              logger,
-		cluster:             cluster,
-		dao:                 &dao,
+		config:  config,
+		logger:  logger,
+		cluster: cluster,
+		dao:     &dao,
 	}
 	
 	localMemb := Member{
@@ -71,9 +71,9 @@ func (manager *Manager) Start() {
 	
 	go func() {
 		for manager.running {
-			time.Sleep(time.Duration(manager.config.HeartbeatInterval + 1) * time.Second)
+			time.Sleep(time.Duration(manager.config.HeartbeatInterval+1) * time.Second)
 			changed := false
-			err := manager.dao.GetHeartbeats(func (nodeid string, tm time.Time){
+			err := manager.dao.GetHeartbeats(func(nodeid string, tm time.Time) {
 				c := manager.handleHeartbeat(nodeid, tm)
 				if c {
 					changed = true
@@ -95,7 +95,7 @@ func (manager *Manager) Start() {
 }
 
 // returns true if member state changed
-func (manager *Manager)handleHeartbeat(nodeid string, tm time.Time) (changed bool) {
+func (manager *Manager) handleHeartbeat(nodeid string, tm time.Time) (changed bool) {
 	member := manager.cluster.GetMember(nodeid)
 	if member == nil {
 		memb, err := manager.dao.GetMember(nodeid)
@@ -134,15 +134,14 @@ func (manager *Manager)handleHeartbeat(nodeid string, tm time.Time) (changed boo
 	return changed
 }
 
-
-func (manager *Manager)checkLeader(memberChanged bool) {
+func (manager *Manager) checkLeader(memberChanged bool) {
 	if manager.cluster.leader != nil && manager.cluster.leader.IsLocal() {
 		return
 	}
 	
 	oldLeader := manager.cluster.leader
 	
-	if oldLeader != nil && !memberChanged{
+	if oldLeader != nil && !memberChanged {
 		return
 	}
 	
@@ -183,7 +182,6 @@ func (manager *Manager)checkLeader(memberChanged bool) {
 	manager.onLeaderChanged(leader)
 }
 
-
 func (manager *Manager) electLeader() *Member {
 	members := manager.cluster.GetSortedMembers()
 	
@@ -206,7 +204,6 @@ func (manager *Manager) electLeader() *Member {
 	return nil
 }
 
-
 // IsLeaderNode : returns whether this kernel is leader.
 func (manager *Manager) IsLeaderNode() bool {
 	return manager.cluster.localMember.IsLeader()
@@ -217,10 +214,10 @@ func (manager *Manager) onLeaderChanged(leader *Member) {
 		manager.logger.Info("[INFO-Cluster] Leader changed. I'm the leader")
 	} else {
 		manager.logger.Info("[INFO-Cluster] Leader changed.", "leader",
-			manager.cluster.leader.NodeID )
+			manager.cluster.leader.NodeID)
 	}
 	
-	types.Publish(&LeaderChangedEvent{
+	common.PublishDaemonEvent(&LeaderChangedEvent{
 		IsLeader: manager.cluster.localMember.IsLeader(),
 		Leader:   leader,
 	})
@@ -230,12 +227,11 @@ func (manager *Manager) onMemberChanged() {
 	manager.logger.Info("[INFO-Cluster] Members changed.", "members",
 		manager.cluster.GetAliveMemberIDs())
 	
-	types.Publish(&MemberChangedEvent{
-		IsLeader: manager.cluster.localMember.IsLeader(),
-		AliveMembers:   manager.cluster.GetAliveMembers(),
+	common.PublishDaemonEvent(&MemberChangedEvent{
+		IsLeader:     manager.cluster.localMember.IsLeader(),
+		AliveMembers: manager.cluster.GetAliveMembers(),
 	})
 }
-
 
 // GetCluster get cluster
 func (manager *Manager) GetCluster() *Cluster {

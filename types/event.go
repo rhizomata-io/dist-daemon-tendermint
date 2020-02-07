@@ -1,68 +1,99 @@
 package types
 
 import (
+	"bytes"
+	"errors"
+	"fmt"
 	"sync"
 )
 
-type EventType string
+
+type EventScope string
+
+const GlobalEventScope  = EventScope("")
+
+type EventPath string
+
+func (path EventPath)HasPrefix (other EventPath) (ok bool){
+	return bytes.HasPrefix([]byte(path), []byte(other))
+}
 
 type Event interface {
-	Type() EventType
+	Path() EventPath
 }
 
 type EventHandler func(event Event)
 
 type EventBus struct {
 	sync.Mutex
-	name      string
-	listeners map[EventType]map[string]EventHandler
+	scope      EventScope
+	listeners map[EventPath]map[string]EventHandler
 }
 
-func NewEventBus(name string) *EventBus {
-	return &EventBus{name: name, listeners: make(map[EventType]map[string]EventHandler)}
+var (
+	eventBusMap = make(map[EventScope]*EventBus)
+)
+
+func RegisterEventBus(scope EventScope) *EventBus {
+	bus := &EventBus{scope: scope, listeners: make(map[EventPath]map[string]EventHandler)}
+	eventBusMap[scope] = bus
+	return bus
 }
 
-func (bus *EventBus) Subscribe(typ EventType, name string, handler EventHandler) {
+func (bus *EventBus) Subscribe(path EventPath, name string, handler EventHandler) {
 	bus.Lock()
-	handlers, ok := bus.listeners[typ]
+	handlers, ok := bus.listeners[path]
 	if !ok {
 		handlers = make(map[string]EventHandler)
-		bus.listeners[typ] = handlers
+		bus.listeners[path] = handlers
 	}
 	handlers[name] = handler
 	bus.Unlock()
 }
 
-func (bus *EventBus) Unsubscribe(typ EventType, name string, handler EventHandler) {
+func (bus *EventBus) Unsubscribe(path EventPath, name string) {
 	bus.Lock()
-	handlers, ok := bus.listeners[typ]
+	handlers, ok := bus.listeners[path]
 	if !ok {
 		handlers = make(map[string]EventHandler)
-		bus.listeners[typ] = handlers
+		bus.listeners[path] = handlers
 	}
-	handlers[name] = handler
+	delete(handlers,name)
 	bus.Unlock()
 }
 
 func (bus *EventBus) Publish(event Event) {
 	bus.Lock()
-	handlers, ok := bus.listeners[event.Type()]
-	if ok {
-		for _, handler := range handlers {
-			go func() { handler(event) }()
+	
+	eventPath := event.Path()
+	
+	for path, handlers := range bus.listeners {
+		if path.HasPrefix(eventPath) {
+			for _, handler := range handlers {
+				go func() { handler(event) }()
+			}
 		}
 	}
+	
 	bus.Unlock()
 }
 
-var (
-	globalEventBus = NewEventBus("global")
-)
-
-func Subscribe(typ EventType, name string, handler EventHandler) {
-	globalEventBus.Subscribe(typ, name, handler)
+func Subscribe(scope EventScope, path EventPath, name string, handler EventHandler) error {
+	bus, ok := eventBusMap[scope]
+	if ok {
+		bus.Subscribe(path, name, handler)
+		return nil
+	} else {
+		return errors.New(fmt.Sprintf("Unknown Event Scope %s",scope))
+	}
 }
 
-func Publish(event Event) {
-	globalEventBus.Publish(event)
+func Publish(scope EventScope, event Event) error {
+	bus, ok := eventBusMap[scope]
+	if ok {
+		bus.Publish(event)
+		return nil
+	} else {
+		return errors.New(fmt.Sprintf("Unknown Event Scope %s",scope))
+	}
 }

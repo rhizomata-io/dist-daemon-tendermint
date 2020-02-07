@@ -55,6 +55,10 @@ func (msg *TxMsg) GetEventKey() string {
 	return msg.Space + "." + msg.Path
 }
 
+func (msg *TxMsg) GetTypeString() string {
+	return TxTypeString(msg.Type)
+}
+
 func NewTxMsg(typ TxType, space string, path string, key string, data []byte) *TxMsg {
 	msg := TxMsg{Type: typ, Space: space, Path: path, Key: []byte(key), Data: data}
 	return &msg

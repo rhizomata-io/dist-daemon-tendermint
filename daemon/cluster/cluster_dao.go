@@ -17,7 +17,7 @@ const (
 
 // DAO kv store model for job
 type DAO struct {
-	config config.DaemonConfig
+	config common.DaemonConfig
 	logger log.Logger
 	client types.Client
 }
@@ -30,13 +30,13 @@ func (dao *DAO) PutMember(member *Member) (err error) {
 		return err
 	}
 	//fmt.Println(" -------- PutMember :", member)
-	msg := types.NewTxMsg(types.TxSet, config.SpaceDaemon, PathMember, member.NodeID, bytes)
+	msg := types.NewTxMsg(types.TxSet, common.SpaceDaemon, PathMember, member.NodeID, bytes)
 	
 	return dao.client.BroadcastTxSync(msg)
 }
 
 func (dao *DAO) GetMember(nodeID string) (member Member, err error) {
-	msg := types.NewViewMsgOne(config.SpaceDaemon, PathMember, nodeID)
+	msg := types.NewViewMsgOne(common.SpaceDaemon, PathMember, nodeID)
 	
 	member = Member{}
 	err = dao.client.GetObject(msg, &member)
@@ -45,20 +45,20 @@ func (dao *DAO) GetMember(nodeID string) (member Member, err error) {
 
 // PutLeader set leader
 func (dao *DAO) PutLeader(leader string) (err error) {
-	msg := types.NewTxMsg(types.TxSet, config.SpaceDaemon, PathLeader, "", []byte(leader))
+	msg := types.NewTxMsg(types.TxSet, common.SpaceDaemon, PathLeader, "", []byte(leader))
 	//fmt.Println(" -------- PutLeader :", leader)
 	return dao.client.BroadcastTxSync(msg)
 }
 
 // GetLeader get leader id
 func (dao *DAO) GetLeader() (leader string, err error) {
-	msg := types.NewViewMsgOne(config.SpaceDaemon, PathLeader, "")
+	msg := types.NewViewMsgOne(common.SpaceDaemon, PathLeader, "")
 	data, err := dao.client.Query(msg)
 	return string(data), err
 }
 
 func (dao *DAO) GetAllMembers() (members []*Member, err error) {
-	msg := types.NewViewMsgMany(config.SpaceDaemon, PathMember, "", "")
+	msg := types.NewViewMsgMany(common.SpaceDaemon, PathMember, "", "")
 	
 	members = []*Member{}
 	
@@ -86,13 +86,13 @@ func (dao *DAO) PutHeartbeat(nodeID string) (err error) {
 		return err
 	}
 	
-	msg := types.NewTxMsg(types.TxSet, config.SpaceDaemon, PathHeartbeat, nodeID, bytes)
+	msg := types.NewTxMsg(types.TxSet, common.SpaceDaemon, PathHeartbeat, nodeID, bytes)
 	
 	return dao.client.BroadcastTxAsync(msg)
 }
 
 func (dao *DAO) GetHeartbeats(handler func(nodeid string, time time.Time)) (err error) {
-	msg := types.NewViewMsgMany(config.SpaceDaemon, PathHeartbeat, "", "")
+	msg := types.NewViewMsgMany(common.SpaceDaemon, PathHeartbeat, "", "")
 	err = dao.client.GetMany(msg, func(key []byte, value []byte) bool {
 		time := time.Time{}
 		nodeid := string(key)

@@ -17,7 +17,7 @@ const (
 
 // DAO kv store model for job
 type DAO struct {
-	config config.DaemonConfig
+	config common.DaemonConfig
 	logger log.Logger
 	client types.Client
 }
@@ -30,14 +30,14 @@ func (dao *DAO) PutMemberJobs(nodeid string, jobIDs []string) (err error) {
 		return err
 	}
 	
-	msg := types.NewTxMsg(types.TxSet, config.SpaceDaemon, PathMemberJobs, nodeid, jobIDsBytes)
+	msg := types.NewTxMsg(types.TxSet, common.SpaceDaemon, PathMemberJobs, nodeid, jobIDsBytes)
 	
 	return dao.client.BroadcastTxSync(msg)
 }
 
 // GetMemberJobs ..
 func (dao *DAO) GetMemberJobs(nodeid string) (jobIDs []string, err error) {
-	msg := types.NewViewMsgOne(config.SpaceDaemon, PathMemberJobs, nodeid)
+	msg := types.NewViewMsgOne(common.SpaceDaemon, PathMemberJobs, nodeid)
 	
 	jobIDs = []string{}
 	err = dao.client.GetObject(msg, jobIDs)
@@ -46,7 +46,7 @@ func (dao *DAO) GetMemberJobs(nodeid string) (jobIDs []string, err error) {
 
 // GetAllMemberJobIDs : returns member-JobIDs Map
 func (dao *DAO) GetAllMemberJobIDs() (membJobMap map[string][]string, err error) {
-	msg := types.NewViewMsgMany(config.SpaceDaemon, PathMemberJobs, "", "")
+	msg := types.NewViewMsgMany(common.SpaceDaemon, PathMemberJobs, "", "")
 	
 	membJobMap = make(map[string][]string)
 	
@@ -88,21 +88,21 @@ func (dao *DAO) PutJob(job Job) (err error) {
 		return err
 	}
 	
-	msg := types.NewTxMsg(types.TxSet, config.SpaceDaemon, PathJobs, job.ID, bytes)
+	msg := types.NewTxMsg(types.TxSet, common.SpaceDaemon, PathJobs, job.ID, bytes)
 	
 	return dao.client.BroadcastTxSync(msg)
 }
 
 // RemoveJob ..
 func (dao *DAO) RemoveJob(jobID string) (err error) {
-	msg := types.NewTxMsg(types.TxDelete, config.SpaceDaemon, PathJobs, jobID, nil)
+	msg := types.NewTxMsg(types.TxDelete, common.SpaceDaemon, PathJobs, jobID, nil)
 	err = dao.client.BroadcastTxSync(msg)
 	return err
 }
 
 // GetJob ..
 func (dao *DAO) GetJob(jobID string) (job Job, err error) {
-	msg := types.NewViewMsgOne(config.SpaceDaemon, PathJobs, jobID)
+	msg := types.NewViewMsgOne(common.SpaceDaemon, PathJobs, jobID)
 	job = Job{}
 	err = dao.client.GetObject(msg, &job)
 	return job, err
@@ -110,7 +110,7 @@ func (dao *DAO) GetJob(jobID string) (job Job, err error) {
 
 // ContainsJob ..
 func (dao *DAO) ContainsJob(jobID string) bool {
-	msg := types.NewViewMsgHas(config.SpaceDaemon, PathJobs, jobID)
+	msg := types.NewViewMsgHas(common.SpaceDaemon, PathJobs, jobID)
 	ok, err := dao.client.Has(msg)
 	
 	if err != nil {
@@ -121,14 +121,14 @@ func (dao *DAO) ContainsJob(jobID string) bool {
 
 // GetAllJobIDs ..
 func (dao *DAO) GetAllJobIDs() (jobIDs []string, err error) {
-	msg := types.NewViewMsgKeys(config.SpaceDaemon, PathJobs, "", "")
+	msg := types.NewViewMsgKeys(common.SpaceDaemon, PathJobs, "", "")
 	jobIDs, err = dao.client.GetKeys(msg)
 	return jobIDs, err
 }
 
 // GetAllJobs ..
 func (dao *DAO) GetAllJobs() (jobs map[string]Job, err error) {
-	msg := types.NewViewMsgKeys(config.SpaceDaemon, PathJobs, "", "")
+	msg := types.NewViewMsgKeys(common.SpaceDaemon, PathJobs, "", "")
 	
 	jobs = make(map[string]Job)
 	err = dao.client.GetMany(msg, func(key []byte, value []byte) bool {

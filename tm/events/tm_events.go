@@ -7,24 +7,81 @@ import (
 )
 
 const (
-	EndBlockEventType   = types.EventType("end-block")
-	BeginBlockEventType = types.EventType("begin-block")
+	EventScopeBlock = types.EventScope("tm-block")
+	EventScopeTx    = types.EventScope("tm-tx")
+	
+	EndBlockEventPath   = types.EventPath("end-block")
+	BeginBlockEventPath = types.EventPath("begin-block")
 )
 
-type BeginBlockEvent struct {
-	Height int64
-	Time time.Time
+var (
+	blockEventBus = types.RegisterEventBus(EventScopeBlock)
+	txEventBus    = types.RegisterEventBus(EventScopeTx)
+)
+
+func PublishBlockEvent(event BlockEvent) {
+	blockEventBus.Publish(event)
 }
 
-func (event BeginBlockEvent) Type() types.EventType { return BeginBlockEventType }
+func SubscribeBlockEvent(path types.EventPath, name string, handler types.EventHandler) {
+	blockEventBus.Subscribe(path, name, handler)
+}
 
-var _ types.Event = BeginBlockEvent{}
+func UnsubscribeBlockEvent(path types.EventPath, name string) {
+	blockEventBus.Unsubscribe(path, name)
+}
+
+type BlockEvent types.Event
+
+type BeginBlockEvent struct {
+	BlockEvent
+	Height int64
+	Time   time.Time
+}
+
+func (event BeginBlockEvent) Path() types.EventPath { return BeginBlockEventPath }
 
 type EndBlockEvent struct {
+	BlockEvent
 	Height int64
-	Size int
+	Size   int
 }
 
-func (event EndBlockEvent) Type() types.EventType { return EndBlockEventType }
+func (event EndBlockEvent) Path() types.EventPath { return EndBlockEventPath }
 
-var _ types.Event = EndBlockEvent{}
+type TxEvent struct {
+	path types.EventPath
+	Type types.TxType
+	Key  []byte
+}
+
+func (event TxEvent) Path() types.EventPath { return event.path }
+
+func MakeTxEventPath(space string, path string, prefix string)  types.EventPath {
+	eventPath := types.EventPath(space + "!" + path + "/" + prefix)
+	return eventPath
+}
+
+func NewTxEvent(msg types.TxMsg) (event TxEvent) {
+	event = TxEvent{
+		path: MakeTxEventPath(msg.Space, msg.Path, string(msg.Key)),
+		Type: msg.Type,
+		Key:  msg.Key,
+	}
+	
+	return event
+}
+
+
+func PublishTxEvent(msg types.TxMsg) {
+	event := NewTxEvent(msg)
+	txEventBus.Publish(event)
+}
+
+func SubscribeTxEvent(eventPath types.EventPath, name string, handler types.EventHandler) {
+	txEventBus.Subscribe(eventPath, name, handler)
+}
+
+func UnsubscribeTxEvent(eventPath types.EventPath , name string) {
+	txEventBus.Unsubscribe(eventPath, name)
+}

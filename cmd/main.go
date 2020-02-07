@@ -27,7 +27,7 @@ func main() {
 		cmd.VersionCmd,
 	)
 	
-	spaces := []string{config.SpaceDaemon}
+	spaces := []string{common.SpaceDaemon}
 	
 	nodeProvider := tm.NewNodeProvider(spaces)
 	// Create & start node

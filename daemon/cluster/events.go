@@ -1,24 +1,27 @@
 package cluster
 
 import (
+	"github.com/rhizomata-io/dist-daemon-tendermint/daemon/common"
 	"github.com/rhizomata-io/dist-daemon-tendermint/types"
 )
 
 const (
-	MemberChangedEventType = types.EventType("member-changed")
-	LeaderChangedEventType = types.EventType("leader-changed")
+	MemberChangedEventPath = types.EventPath("member-changed")
+	LeaderChangedEventPath = types.EventPath("leader-changed")
 )
 
 type MemberChangedEvent struct {
+	common.DaemonEvent
 	IsLeader     bool
 	AliveMembers []*Member
 }
 
-func (event *MemberChangedEvent) Type() types.EventType { return MemberChangedEventType }
+func (event *MemberChangedEvent) Path() types.EventPath { return MemberChangedEventPath }
 
 type LeaderChangedEvent struct {
+	common.DaemonEvent
 	IsLeader bool
 	Leader   *Member
 }
 
-func (event *LeaderChangedEvent) Type() types.EventType { return LeaderChangedEventType }
+func (event *LeaderChangedEvent) Path() types.EventPath { return LeaderChangedEventPath }
