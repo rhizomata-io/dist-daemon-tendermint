@@ -3,6 +3,7 @@ package cluster
 import (
 	"fmt"
 	"github.com/rhizomata-io/dist-daemon-tendermint/daemon/common"
+	tmevents "github.com/rhizomata-io/dist-daemon-tendermint/tm/events"
 	"github.com/rhizomata-io/dist-daemon-tendermint/types"
 	"github.com/tendermint/tendermint/libs/log"
 	"time"
@@ -59,37 +60,31 @@ func (manager *Manager) Start() {
 		panic(err)
 	}
 	
-	go func() {
-		for manager.running {
-			time.Sleep(time.Duration(manager.config.HeartbeatInterval) * time.Second)
-			err := manager.dao.PutHeartbeat(manager.config.NodeID)
-			if err != nil {
-				manager.logger.Error("Cannot send Heartbeat.", err)
-			}
+	tmevents.SubscribeBlockEvent(tmevents.BeginBlockEventPath, "heartbeat", func(event types.Event) {
+		err := manager.dao.PutHeartbeat(manager.config.NodeID)
+		if err != nil {
+			manager.logger.Error("Cannot send Heartbeat.", err)
 		}
-	}()
+	})
 	
-	go func() {
-		for manager.running {
-			time.Sleep(time.Duration(manager.config.HeartbeatInterval+1) * time.Second)
-			changed := false
-			err := manager.dao.GetHeartbeats(func(nodeid string, tm time.Time) {
-				c := manager.handleHeartbeat(nodeid, tm)
-				if c {
-					changed = true
-				}
-			})
-			if err != nil {
-				manager.logger.Error("[FATAL] Cannot check heartbeats.", err)
+	tmevents.SubscribeBlockEvent(tmevents.EndBlockEventPath, "checkMembers", func(event types.Event) {
+		changed := false
+		err := manager.dao.GetHeartbeats(func(nodeid string, tm time.Time) {
+			c := manager.handleHeartbeat(nodeid, tm)
+			if c {
+				changed = true
 			}
-			
-			manager.checkLeader(changed)
-			
-			if changed {
-				manager.onMemberChanged()
-			}
+		})
+		if err != nil {
+			manager.logger.Error("[FATAL] Cannot check heartbeats.", err)
 		}
-	}()
+		
+		manager.checkLeader(changed)
+		
+		if changed {
+			manager.onMemberChanged()
+		}
+	})
 	
 	manager.logger.Info("[INFO-Cluster] Start Cluster Manager.")
 }

@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	
-	"github.com/rhizomata-io/dist-daemon-tendermint/daemon/config"
+	"github.com/rhizomata-io/dist-daemon-tendermint/daemon/common"
 	"github.com/rhizomata-io/dist-daemon-tendermint/tm"
 	
 	"github.com/tendermint/tendermint/libs/cli"

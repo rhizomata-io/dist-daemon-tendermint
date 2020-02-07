@@ -4,7 +4,7 @@ import (
 	"time"
 	
 	"github.com/rhizomata-io/dist-daemon-tendermint/daemon/cluster"
-	dmCfg "github.com/rhizomata-io/dist-daemon-tendermint/daemon/config"
+	dmCfg "github.com/rhizomata-io/dist-daemon-tendermint/daemon/common"
 	
 	cfg "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/libs/log"
@@ -44,31 +44,11 @@ func (dm *Daemon) Start() {
 		
 		dm.clusterManager.Start()
 	}()
-	
-	// go func(){
-	// 	q := query.MustParse("*")
-	// 	subs, err := dm.tmNode.EventBus().Subscribe(context.Background(),"test", q, 10)
-	// 	if err != nil {
-	// 		fmt.Println("Subscription ERR ", err)
-	// 	} else {
-	// 		for {
-	// 			select {
-	// 			case msg := <- subs.Out():
-	// 				data := msg.Data()
-	// 				fmt.Println("***** Message.Data", data)
-	// 				events := msg.Events()
-	// 				fmt.Println("***** Message.Events", events)
-	// 			case <-subs.Cancelled():
-	// 				subs.Err()
-	// 			}
-	// 		}
-	// 	}
-	// }()
 }
 
 func (dm *Daemon) waitReady() {
 	gap := time.Second * 3
 	for time.Now().Sub(dm.tmNode.ConsensusState().GetState().LastBlockTime) > gap {
-		time.Sleep(gap)
+		time.Sleep(200 * time.Millisecond)
 	}
 }

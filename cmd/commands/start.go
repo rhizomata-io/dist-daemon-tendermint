@@ -5,9 +5,10 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"github.com/rhizomata-io/dist-daemon-tendermint/daemon"
-	dmcfg "github.com/rhizomata-io/dist-daemon-tendermint/daemon/config"
+	dmcfg "github.com/rhizomata-io/dist-daemon-tendermint/daemon/common"
 	"io"
 	"os"
+	"time"
 	
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -126,8 +127,7 @@ func NewStartCmd(nodeProvider nm.Provider) *cobra.Command {
 				ChainID:               config.ChainID(),
 				NodeID:                string(n.NodeInfo().ID()),
 				NodeName:              config.Moniker,
-				HeartbeatInterval:     2,
-				AliveThresholdSeconds: 4,
+				AliveThresholdSeconds: uint(config.Consensus.PeerGossipSleepDuration / time.Second),
 			}
 			
 			dm := daemon.NewDaemon(config, logger, n, daemonConfig)

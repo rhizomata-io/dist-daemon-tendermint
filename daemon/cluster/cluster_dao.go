@@ -5,7 +5,7 @@ import (
 	
 	"github.com/tendermint/tendermint/libs/log"
 	
-	"github.com/rhizomata-io/dist-daemon-tendermint/daemon/config"
+	"github.com/rhizomata-io/dist-daemon-tendermint/daemon/common"
 	"github.com/rhizomata-io/dist-daemon-tendermint/types"
 )
 

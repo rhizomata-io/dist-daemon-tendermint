@@ -1,7 +1,5 @@
 package common
 
-import "github.com/rhizomata-io/dist-daemon-tendermint/types"
-
 const (
 	SpaceDaemon = "daemon"
 )
