@@ -74,4 +74,8 @@ func onDaemonStarted(dm *daemon.Daemon) {
 	
 	jobInfo6, _ := json.Marshal(`{"interval":"500ms","greet":"hi 500ms" }`)
 	dm.GetJobRepository().PutJobIfNotExist(job.NewWithID(hello.FactoryName, "hi3", jobInfo6))
+	
+	dm.GetJobRepository().GetJob("hi2")
+	
+	dm.GetJobRepository().GetAllJobs()
 }
