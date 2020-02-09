@@ -8,6 +8,19 @@ import (
 )
 
 
+type Repository interface {
+	PutJob(job Job) error
+	RemoveJob(jobID string) error
+	GetJob(jobID string) (job Job, err error)
+	ContainsJob(jobID string) bool
+	GetAllJobIDs() (jobIDs []string, err error)
+	GetAllJobs() (jobs map[string]Job, err error)
+	GetMemberJobIDs(membID string) (jobIDs []string, err error)
+	GetAllMemberJobIDs() (membJobMap map[string][]string, err error)
+	PutMemberJobIDs(membID string, jobIDs []string) (err error)
+	GetMemberJobs(membID string) (jobs []Job, err error)
+}
+
 func init() {
 	types.BasicCdc.RegisterConcrete(Job{}, "daemon/job", nil)
 }

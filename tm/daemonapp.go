@@ -101,16 +101,18 @@ func (app *DaemonApp) Query(reqQuery abcitypes.RequestQuery) (resQuery abcitypes
 		return resQuery
 	}
 	
-	store, err := app.getSpace(msg.Space).GetStore(msg.Path)
-	
 	resQuery.Index = -1
 	resQuery.Key = reqQuery.Data
 	
-	if err != nil {
-		app.logger.Error("[DMA] Unknown Store "+reqQuery.Path, err)
-		resQuery.Log = err.Error()
-		return resQuery
-	}
+	// store, err := app.getSpace(msg.Space).GetStore(msg.Path)
+	//
+	// if err != nil {
+	// 	app.logger.Error("[DMA] Unknown Store "+reqQuery.Path, err)
+	// 	resQuery.Log = err.Error()
+	// 	return resQuery
+	// }
+	
+	store := app.getSpaceStoreAny(msg.Space, msg.Path)
 	
 	if msg.Type == types.Has {
 		ok, err := store.Has(msg.Start)

@@ -13,6 +13,19 @@ func init() {
 	types.BasicCdc.RegisterConcrete(Member{}, "daemon/member", nil)
 }
 
+type Repository interface {
+	PutMember(member *Member) (err error)
+	GetMember(nodeID string) (member Member, err error)
+	HasMember(nodeID string) (ok bool)
+	PutLeader(leader string) (err error)
+	GetLeader() (leader string, err error)
+	GetAllMembers() (members []*Member, err error)
+	PutHeartbeat(nodeID string) (err error)
+	GetHeartbeats(handler func(nodeid string, time time.Time)) (err error)
+}
+
+
+
 // Cluster ..
 type Cluster struct {
 	name        string

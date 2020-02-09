@@ -8,6 +8,7 @@ type KVHandler func(key []byte, value []byte) bool
 type Client interface {
 	BroadcastTxSync(msg *TxMsg) error
 	BroadcastTxAsync(msg *TxMsg) error
+	BroadcastTxCommit(msg *TxMsg) error
 	Commit() error
 	Has(msg *ViewMsg) (bool, error)
 	Query(msg *ViewMsg) ([]byte, error)
@@ -16,4 +17,6 @@ type Client interface {
 	GetKeys(msg *ViewMsg) ([]string, error)
 	UnmarshalObject(bz []byte, ptr interface{}) error
 	MarshalObject(ptr interface{}) ([]byte, error)
+	UnmarshalJson(bz []byte, ptr interface{}) error
+	MarshalJson(ptr interface{}) ([]byte, error)
 }

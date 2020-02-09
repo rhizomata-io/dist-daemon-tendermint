@@ -1,6 +1,7 @@
 package client
 
 import (
+	"encoding/json"
 	"errors"
 	
 	cfg "github.com/tendermint/tendermint/config"
@@ -50,6 +51,21 @@ func (client *TMClient) BroadcastTxAsync(msg *types.TxMsg) (err error) {
 	_, err = core.BroadcastTxAsync(&rpctypes.Context{}, msgBytes)
 	if err != nil {
 		client.logger.Error("[TMClient] BroadcastTxAsync", err)
+		return err
+	}
+	return err
+}
+
+func (client *TMClient) BroadcastTxCommit(msg *types.TxMsg) (err error) {
+	msgBytes, err := types.EncodeTxMsg(msg)
+	if err != nil {
+		client.logger.Error("[TMClient] BroadcastTxCommit : EncodeTxMsg", err)
+		return err
+	}
+	
+	_, err = core.BroadcastTxCommit(&rpctypes.Context{}, msgBytes)
+	if err != nil {
+		client.logger.Error("[TMClient] BroadcastTxCommit", err)
 		return err
 	}
 	return err
@@ -198,6 +214,32 @@ func (client *TMClient) MarshalObject(ptr interface{}) (bytes[]byte, err error) 
 	
 	if err != nil {
 		err := errors.New("[TMClient] MarshalObject : " + err.Error())
+		return nil, err
+	}
+	return bytes, err
+}
+
+
+func (client *TMClient) UnmarshalJson(bz []byte, ptr interface{}) error {
+	if len(bz) == 0 {
+		err := errors.New("[TMClient] UnmarshalJson []byte data is empty")
+		return err
+	}
+	
+	err := json.Unmarshal(bz, ptr)
+	
+	if err != nil {
+		err := errors.New("[TMClient] UnmarshalJson : " + err.Error())
+		return err
+	}
+	return err
+}
+
+func (client *TMClient) MarshalJson(ptr interface{}) (bytes[]byte, err error) {
+	bytes, err = json.Marshal(ptr)
+	
+	if err != nil {
+		err := errors.New("[TMClient] MarshalJson : " + err.Error())
 		return nil, err
 	}
 	return bytes, err

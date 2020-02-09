@@ -16,8 +16,8 @@ func PublishDaemonEvent(event DaemonEvent) {
 	daemonEventBus.Publish(event)
 }
 
-func SubscribeDaemonEvent(path types.EventPath, name string, handler types.EventHandler) {
-	daemonEventBus.Subscribe(path, name, handler)
+func SubscribeDaemonEvent(path types.EventPath, name string, handler types.EventHandler) error {
+	return daemonEventBus.Subscribe(path, name, handler)
 }
 
 func UnsubscribeDaemonEvent(path types.EventPath, name string) {

@@ -40,15 +40,21 @@ func RegisterEventBus(scope EventScope) *EventBus {
 	return bus
 }
 
-func (bus *EventBus) Subscribe(path EventPath, name string, handler EventHandler) {
+func (bus *EventBus) Subscribe(path EventPath, name string, handler EventHandler) error {
 	bus.Lock()
 	handlers, ok := bus.listeners[path]
 	if !ok {
 		handlers = make(map[string]EventHandler)
 		bus.listeners[path] = handlers
 	}
+	
+	if _,ok := handlers[name]; ok {
+		err := errors.New(fmt.Sprintf("EventHandler[%s] at %s is already registered.", name,path))
+		return err
+	}
 	handlers[name] = handler
 	bus.Unlock()
+	return nil
 }
 
 func (bus *EventBus) Unsubscribe(path EventPath, name string) {
@@ -81,8 +87,7 @@ func (bus *EventBus) Publish(event Event) {
 func Subscribe(scope EventScope, path EventPath, name string, handler EventHandler) error {
 	bus, ok := eventBusMap[scope]
 	if ok {
-		bus.Subscribe(path, name, handler)
-		return nil
+		return bus.Subscribe(path, name, handler)
 	} else {
 		return errors.New(fmt.Sprintf("Unknown Event Scope %s",scope))
 	}

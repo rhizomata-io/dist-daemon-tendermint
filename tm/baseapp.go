@@ -114,6 +114,7 @@ func (app *BaseApplication) Commit() abcitypes.ResponseCommit {
 	app.state.AppHash = appHash
 	app.state.Height++
 	saveState(app.state)
+	events.PublishBlockEvent(events.CommitEvent{Height: app.state.Height, Size: app.state.Size, AppHash: app.state.AppHash})
 	return abcitypes.ResponseCommit{Data: appHash}
 }
 
@@ -144,12 +145,12 @@ func (app *BaseApplication) BeginBlock(req abcitypes.RequestBeginBlock) abcitype
 		}
 	}
 	
-	events.PublishBlockEvent(events.BeginBlockEvent{Height:req.Header.Height, Time:req.Header.Time})
+	events.PublishBlockEvent(events.BeginBlockEvent{Height: req.Header.Height, Time: req.Header.Time})
 	return abcitypes.ResponseBeginBlock{}
 }
 
 func (app *BaseApplication) EndBlock(req abcitypes.RequestEndBlock) abcitypes.ResponseEndBlock {
-	events.PublishBlockEvent(events.EndBlockEvent{Height:req.GetHeight(), Size:req.Size()})
+	events.PublishBlockEvent(events.EndBlockEvent{Height: req.GetHeight(), Size: req.Size()})
 	return abcitypes.ResponseEndBlock{ValidatorUpdates: app.ValUpdates}
 }
 

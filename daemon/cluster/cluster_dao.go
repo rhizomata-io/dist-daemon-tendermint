@@ -15,14 +15,21 @@ const (
 	PathLeader = "leader"
 )
 
-// DAO kv store model for job
-type DAO struct {
+// clusterDao kv store model for job
+type clusterDao struct {
 	config common.DaemonConfig
 	logger log.Logger
 	client types.Client
 }
 
-func (dao *DAO) PutMember(member *Member) (err error) {
+var _ Repository = (*clusterDao)(nil)
+
+func NewRepository(config common.DaemonConfig, logger log.Logger, client types.Client) Repository {
+	dao := &clusterDao{config: config, logger: logger, client: client}
+	return dao
+}
+
+func (dao *clusterDao) PutMember(member *Member) (err error) {
 	bytes, err := types.BasicCdc.MarshalBinaryBare(member)
 	
 	if err != nil {
@@ -35,7 +42,7 @@ func (dao *DAO) PutMember(member *Member) (err error) {
 	return dao.client.BroadcastTxSync(msg)
 }
 
-func (dao *DAO) GetMember(nodeID string) (member Member, err error) {
+func (dao *clusterDao) GetMember(nodeID string) (member Member, err error) {
 	msg := types.NewViewMsgOne(common.SpaceDaemon, PathMember, nodeID)
 	
 	member = Member{}
@@ -43,21 +50,31 @@ func (dao *DAO) GetMember(nodeID string) (member Member, err error) {
 	return member, err
 }
 
+func (dao *clusterDao) HasMember(nodeID string) (ok bool) {
+	msg := types.NewViewMsgHas(common.SpaceDaemon, PathMember, nodeID)
+	ok, err := dao.client.Has(msg)
+	
+	if err != nil {
+		dao.logger.Error("HasMember ", err)
+	}
+	return ok
+}
+
 // PutLeader set leader
-func (dao *DAO) PutLeader(leader string) (err error) {
+func (dao *clusterDao) PutLeader(leader string) (err error) {
 	msg := types.NewTxMsg(types.TxSet, common.SpaceDaemon, PathLeader, "", []byte(leader))
 	//fmt.Println(" -------- PutLeader :", leader)
 	return dao.client.BroadcastTxSync(msg)
 }
 
 // GetLeader get leader id
-func (dao *DAO) GetLeader() (leader string, err error) {
+func (dao *clusterDao) GetLeader() (leader string, err error) {
 	msg := types.NewViewMsgOne(common.SpaceDaemon, PathLeader, "")
 	data, err := dao.client.Query(msg)
 	return string(data), err
 }
 
-func (dao *DAO) GetAllMembers() (members []*Member, err error) {
+func (dao *clusterDao) GetAllMembers() (members []*Member, err error) {
 	msg := types.NewViewMsgMany(common.SpaceDaemon, PathMember, "", "")
 	
 	members = []*Member{}
@@ -78,7 +95,7 @@ func (dao *DAO) GetAllMembers() (members []*Member, err error) {
 }
 
 
-func (dao *DAO) PutHeartbeat(nodeID string) (err error) {
+func (dao *clusterDao) PutHeartbeat(nodeID string) (err error) {
 	bytes, err := types.BasicCdc.MarshalBinaryBare(time.Now())
 	
 	if err != nil {
@@ -91,7 +108,7 @@ func (dao *DAO) PutHeartbeat(nodeID string) (err error) {
 	return dao.client.BroadcastTxAsync(msg)
 }
 
-func (dao *DAO) GetHeartbeats(handler func(nodeid string, time time.Time)) (err error) {
+func (dao *clusterDao) GetHeartbeats(handler func(nodeid string, time time.Time)) (err error) {
 	msg := types.NewViewMsgMany(common.SpaceDaemon, PathHeartbeat, "", "")
 	err = dao.client.GetMany(msg, func(key []byte, value []byte) bool {
 		time := time.Time{}

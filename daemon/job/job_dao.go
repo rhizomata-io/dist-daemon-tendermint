@@ -1,9 +1,6 @@
 package job
 
 import (
-	"fmt"
-	
-	"github.com/rhizomata-io/dist-daemonize/kernel/kv"
 	"github.com/tendermint/tendermint/libs/log"
 	
 	"github.com/rhizomata-io/dist-daemon-tendermint/daemon/common"
@@ -15,15 +12,22 @@ const (
 	PathMemberJobs = "membjobs"
 )
 
-// DAO kv store model for job
-type DAO struct {
+// jobDao kv store model for job
+type jobDao struct {
 	config common.DaemonConfig
 	logger log.Logger
 	client types.Client
 }
 
+var _ Repository = (*jobDao)(nil)
+
+func NewRepository(config common.DaemonConfig, logger log.Logger, client types.Client) Repository {
+	dao := &jobDao{config: config, logger: logger, client: client}
+	return dao
+}
+
 // PutMemberJobs ..
-func (dao *DAO) PutMemberJobs(nodeid string, jobIDs []string) (err error) {
+func (dao *jobDao) PutMemberJobIDs(nodeid string, jobIDs []string) (err error) {
 	jobIDsBytes, err := dao.client.MarshalObject(jobIDs)
 	
 	if err != nil {
@@ -36,7 +40,7 @@ func (dao *DAO) PutMemberJobs(nodeid string, jobIDs []string) (err error) {
 }
 
 // GetMemberJobs ..
-func (dao *DAO) GetMemberJobs(nodeid string) (jobIDs []string, err error) {
+func (dao *jobDao) GetMemberJobIDs(nodeid string) (jobIDs []string, err error) {
 	msg := types.NewViewMsgOne(common.SpaceDaemon, PathMemberJobs, nodeid)
 	
 	jobIDs = []string{}
@@ -44,8 +48,26 @@ func (dao *DAO) GetMemberJobs(nodeid string) (jobIDs []string, err error) {
 	return jobIDs, err
 }
 
+// GetMemberJobs ..
+func (dao *jobDao) GetMemberJobs(membID string) (jobs []Job, err error) {
+	jobIDs, err := dao.GetMemberJobIDs(membID)
+	if err != nil {
+		dao.logger.Error("[ERROR] Cannot retrieve member jobs", err)
+		return []Job{}, err
+	}
+	jobs = []Job{}
+	for _, jobID := range jobIDs {
+		job, err2 := dao.GetJob(jobID)
+		if err2 == nil {
+			jobs = append(jobs, job)
+		}
+	}
+	
+	return jobs, err
+}
+
 // GetAllMemberJobIDs : returns member-JobIDs Map
-func (dao *DAO) GetAllMemberJobIDs() (membJobMap map[string][]string, err error) {
+func (dao *jobDao) GetAllMemberJobIDs() (membJobMap map[string][]string, err error) {
 	msg := types.NewViewMsgMany(common.SpaceDaemon, PathMemberJobs, "", "")
 	
 	membJobMap = make(map[string][]string)
@@ -64,23 +86,8 @@ func (dao *DAO) GetAllMemberJobIDs() (membJobMap map[string][]string, err error)
 	return membJobMap, err
 }
 
-// // WatchMemberJobs ..
-// func (dao *DAO) WatchMemberJobs(memberID string, handler func(jobIDs []string)) (watcher *kv.Watcher) {
-// 	dirPath := fmt.Sprintf(kvPatternMemberJob, dao.cluster, memberID)
-// 	watcher = dao.client .Watch(dirPath,
-// 		func(eventType kv.EventType, fullPath string, rowID string, value []byte) {
-// 			jobIDs := []string{}
-// 			err := json.Unmarshal(value, &jobIDs)
-// 			if err != nil {
-// 				dao.logger.Info("[ERROR-JobDao] unmarshal member jobs ", memberID, err)
-// 			}
-// 			handler(jobIDs)
-// 		})
-// 	return watcher
-// }
-
 // PutJob ..
-func (dao *DAO) PutJob(job Job) (err error) {
+func (dao *jobDao) PutJob(job Job) (err error) {
 	bytes, err := dao.client.MarshalObject(job)
 	
 	if err != nil {
@@ -94,14 +101,14 @@ func (dao *DAO) PutJob(job Job) (err error) {
 }
 
 // RemoveJob ..
-func (dao *DAO) RemoveJob(jobID string) (err error) {
+func (dao *jobDao) RemoveJob(jobID string) (err error) {
 	msg := types.NewTxMsg(types.TxDelete, common.SpaceDaemon, PathJobs, jobID, nil)
 	err = dao.client.BroadcastTxSync(msg)
 	return err
 }
 
 // GetJob ..
-func (dao *DAO) GetJob(jobID string) (job Job, err error) {
+func (dao *jobDao) GetJob(jobID string) (job Job, err error) {
 	msg := types.NewViewMsgOne(common.SpaceDaemon, PathJobs, jobID)
 	job = Job{}
 	err = dao.client.GetObject(msg, &job)
@@ -109,7 +116,7 @@ func (dao *DAO) GetJob(jobID string) (job Job, err error) {
 }
 
 // ContainsJob ..
-func (dao *DAO) ContainsJob(jobID string) bool {
+func (dao *jobDao) ContainsJob(jobID string) bool {
 	msg := types.NewViewMsgHas(common.SpaceDaemon, PathJobs, jobID)
 	ok, err := dao.client.Has(msg)
 	
@@ -120,14 +127,14 @@ func (dao *DAO) ContainsJob(jobID string) bool {
 }
 
 // GetAllJobIDs ..
-func (dao *DAO) GetAllJobIDs() (jobIDs []string, err error) {
+func (dao *jobDao) GetAllJobIDs() (jobIDs []string, err error) {
 	msg := types.NewViewMsgKeys(common.SpaceDaemon, PathJobs, "", "")
 	jobIDs, err = dao.client.GetKeys(msg)
 	return jobIDs, err
 }
 
 // GetAllJobs ..
-func (dao *DAO) GetAllJobs() (jobs map[string]Job, err error) {
+func (dao *jobDao) GetAllJobs() (jobs map[string]Job, err error) {
 	msg := types.NewViewMsgKeys(common.SpaceDaemon, PathJobs, "", "")
 	
 	jobs = make(map[string]Job)
@@ -142,13 +149,4 @@ func (dao *DAO) GetAllJobs() (jobs map[string]Job, err error) {
 	return jobs, err
 }
 
-// WatchJobs ..
-// func (dao *DAO) WatchJobs(handler func(jobid string, data []byte)) (watcher *kv.Watcher) {
-// 	dirPath := fmt.Sprintf(kvPatternJobsDir, dao.cluster)
-// 	watcher = dao.client.WatchWithPrefix(dirPath,
-// 		func(eventType kv.EventType, fullPath string, rowID string, value []byte) {
-// 			jobid := rowID
-// 			handler(jobid, value)
-// 		})
-// 	return watcher
-// }
+

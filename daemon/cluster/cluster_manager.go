@@ -13,19 +13,19 @@ type Manager struct {
 	config  common.DaemonConfig
 	logger  log.Logger
 	cluster *Cluster
-	dao     *DAO
+	dao     Repository
 	running bool
 }
 
 func NewManager(config common.DaemonConfig, logger log.Logger, client types.Client) *Manager {
 	cluster := newCluster(config.ChainID)
-	dao := DAO{config: config, logger: logger, client: client}
+	dao := NewRepository(config, logger, client)
 	
 	manager := &Manager{
 		config:  config,
 		logger:  logger,
 		cluster: cluster,
-		dao:     &dao,
+		dao:     dao,
 	}
 	
 	localMemb := Member{
@@ -61,13 +61,14 @@ func (manager *Manager) Start() {
 	}
 	
 	tmevents.SubscribeBlockEvent(tmevents.BeginBlockEventPath, "heartbeat", func(event types.Event) {
+		// fmt.Println("heartbeat ", event)
 		err := manager.dao.PutHeartbeat(manager.config.NodeID)
 		if err != nil {
 			manager.logger.Error("Cannot send Heartbeat.", err)
 		}
 	})
 	
-	tmevents.SubscribeBlockEvent(tmevents.EndBlockEventPath, "checkMembers", func(event types.Event) {
+	tmevents.SubscribeBlockEvent(tmevents.CommitEventPath, "checkMembers", func(event types.Event) {
 		changed := false
 		err := manager.dao.GetHeartbeats(func(nodeid string, tm time.Time) {
 			c := manager.handleHeartbeat(nodeid, tm)
@@ -104,14 +105,12 @@ func (manager *Manager) handleHeartbeat(nodeid string, tm time.Time) (changed bo
 	
 	oldAlive := member.IsAlive()
 	
-	// fmt.Println("   -- ", nodeid , "1 oldAlive=", oldAlive , ", tm=" , tm, ", heartbeat=", member.Heartbeat())
-	
 	if member.IsLocal() {
 		member.SetAlive(true)
 	} else if member.Heartbeat().IsZero() || tm.Equal(member.Heartbeat()) {
-		gap := time.Now().Sub(tm)
-		// fmt.Println("   -- ", nodeid , "2 gap=", gap , ", tm=" , tm, ", heartbeat=", member.Heartbeat())
-		if gap.Seconds() > float64(manager.config.AliveThresholdSeconds) {
+		gap := time.Now().Sub(tm).Seconds()
+		if gap > float64(manager.config.AliveThresholdSeconds) {
+			manager.logger.Info(fmt.Sprintf("Member[%s] haven't sent heartbeat for %f seconds.",member.NodeID,gap))
 			member.SetAlive(false)
 		} else {
 			member.SetAlive(true)
@@ -123,8 +122,6 @@ func (manager *Manager) handleHeartbeat(nodeid string, tm time.Time) (changed bo
 	member.SetHeartbeat(tm)
 	
 	changed = oldAlive != member.IsAlive()
-	
-	//fmt.Println("   -- ", nodeid , "3 IsAlive=", member.IsAlive() , ", changed=" , changed)
 	
 	return changed
 }
@@ -145,11 +142,16 @@ func (manager *Manager) checkLeader(memberChanged bool) {
 		manager.logger.Error("Get Leader ", err)
 	}
 	
+	manager.logger.Info("[INFO-Cluster] Stored Leader is" , leaderID)
+	
 	if oldLeader != nil {
 		if oldLeader.NodeID == leaderID {
 			if oldLeader.IsAlive() {
 				return
 			}
+			manager.logger.Info("[INFO-Cluster] Old leader is dead. " , oldLeader.NodeID)
+			oldLeader.SetLeader(false)
+			manager.cluster.leader = nil
 		} else {
 			oldLeader.SetLeader(false)
 			manager.cluster.leader = nil
@@ -161,8 +163,10 @@ func (manager *Manager) checkLeader(memberChanged bool) {
 	if len(leaderID) > 0 {
 		leader = manager.cluster.GetMember(leaderID)
 		if leader == nil {
+			manager.logger.Info("[INFO-Cluster] Old leader is missing. " , leaderID)
 			leader = manager.electLeader()
 		} else if !leader.IsAlive() {
+			manager.logger.Info("[INFO-Cluster] Old leader is dead. " , leaderID)
 			leader.SetLeader(false)
 			leader = manager.electLeader()
 		}
