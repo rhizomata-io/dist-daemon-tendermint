@@ -14,8 +14,8 @@ const GlobalEventScope  = EventScope("")
 
 type EventPath string
 
-func (path EventPath)HasPrefix (other EventPath) (ok bool){
-	return bytes.HasPrefix([]byte(path), []byte(other))
+func (path EventPath)HasPrefix (prefix EventPath) (ok bool){
+	return bytes.HasPrefix([]byte(path), []byte(prefix))
 }
 
 type Event interface {
@@ -74,7 +74,9 @@ func (bus *EventBus) Publish(event Event) {
 	eventPath := event.Path()
 	
 	for path, handlers := range bus.listeners {
-		if path.HasPrefix(eventPath) {
+		// fmt.Println(" - EventBus Publish ", eventPath, "=", path, len(handlers))
+		if eventPath.HasPrefix(path) {
+			// fmt.Println("     - EventBus Publish * Match ", eventPath, "=", path )
 			for _, handler := range handlers {
 				go func() { handler(event) }()
 			}

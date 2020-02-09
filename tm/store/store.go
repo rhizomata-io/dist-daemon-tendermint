@@ -104,6 +104,7 @@ func (store *Store) Iterator(start, end []byte) (dbm.Iterator, error) {
 		endBts = store.path.makeKey(endBytes)
 	}
 	
+	fmt.Println("[Store] Iterator ", string(startBytes), string(endBts))
 	return store.db.Iterator(startBytes, endBts)
 }
 
@@ -136,6 +137,7 @@ func (store *Store) GetMany(start, end []byte) (kvArrayBytes[]byte, err error) {
 
 func (store *Store) GetKeys(start, end []byte) (keyArrayBytes[]byte, err error) {
 	iterator, err := store.Iterator(start, end)
+	fmt.Println("[Store] GetKeys ", start, end)
 	
 	if err != nil {
 		return nil,err
