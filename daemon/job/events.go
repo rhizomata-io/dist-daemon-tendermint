@@ -16,12 +16,13 @@ type MemberJobsChangedEvent struct {
 	JobIDs []string
 }
 
-func (event *MemberJobsChangedEvent) Path() types.EventPath { return MemberJobsChangedEventPath }
+
+func (event MemberJobsChangedEvent) Path() types.EventPath { return MemberJobsChangedEventPath }
 
 type JobsChangedEvent struct {
 	common.DaemonEvent
 	JobIDs []string
 }
 
-func (event *JobsChangedEvent) Path() types.EventPath { return JobsChangedEventPath }
+func (event JobsChangedEvent) Path() types.EventPath { return JobsChangedEventPath }
 

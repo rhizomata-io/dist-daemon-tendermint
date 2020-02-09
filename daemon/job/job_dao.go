@@ -100,6 +100,14 @@ func (dao *jobDao) PutJob(job Job) (err error) {
 	return dao.client.BroadcastTxSync(msg)
 }
 
+// PutJob ..
+func (dao *jobDao) PutJobIfNotExist(job Job) error {
+	if !dao.ContainsJob(job.ID) {
+		return dao.PutJob(job)
+	}
+	return nil
+}
+
 // RemoveJob ..
 func (dao *jobDao) RemoveJob(jobID string) (err error) {
 	msg := types.NewTxMsg(types.TxDelete, common.SpaceDaemon, PathJobs, jobID, nil)
@@ -135,7 +143,7 @@ func (dao *jobDao) GetAllJobIDs() (jobIDs []string, err error) {
 
 // GetAllJobs ..
 func (dao *jobDao) GetAllJobs() (jobs map[string]Job, err error) {
-	msg := types.NewViewMsgKeys(common.SpaceDaemon, PathJobs, "", "")
+	msg := types.NewViewMsgMany(common.SpaceDaemon, PathJobs, "", "")
 	
 	jobs = make(map[string]Job)
 	err = dao.client.GetMany(msg, func(key []byte, value []byte) bool {

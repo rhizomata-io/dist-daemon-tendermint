@@ -12,11 +12,12 @@ const (
 
 type MemberChangedEvent struct {
 	common.DaemonEvent
-	IsLeader     bool
-	AliveMembers []*Member
+	IsLeader       bool
+	AliveMemberIDs []string
+	AliveMembers   []*Member
 }
 
-func (event *MemberChangedEvent) Path() types.EventPath { return MemberChangedEventPath }
+func (event MemberChangedEvent) Path() types.EventPath { return MemberChangedEventPath }
 
 type LeaderChangedEvent struct {
 	common.DaemonEvent
@@ -24,4 +25,4 @@ type LeaderChangedEvent struct {
 	Leader   *Member
 }
 
-func (event *LeaderChangedEvent) Path() types.EventPath { return LeaderChangedEventPath }
+func (event LeaderChangedEvent) Path() types.EventPath { return LeaderChangedEventPath }

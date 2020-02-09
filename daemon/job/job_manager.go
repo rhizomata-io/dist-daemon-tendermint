@@ -33,19 +33,21 @@ func (manager *Manager) Start() {
 		if err != nil {
 			manager.logger.Error("[JobManager GetAllJobIDs", err)
 		}
-		common.PublishDaemonEvent(&JobsChangedEvent{
+		common.PublishDaemonEvent(JobsChangedEvent{
 			JobIDs: jobIDs,
 		})
 	})
 	
 	memJobsEvtPath := tmevents.MakeTxEventPath(common.SpaceDaemon, PathMemberJobs, manager.nodeID)
+	
 	tmevents.SubscribeTxEvent(memJobsEvtPath, "mem_jobs", func(event tmevents.TxEvent) {
 		nodeID := string(event.Key)
+		
 		jobIDs, err := manager.dao.GetMemberJobIDs(nodeID)
 		if err != nil {
 			manager.logger.Error("[JobManager GetAllJobIDs", err)
 		}
-		common.PublishDaemonEvent(&MemberJobsChangedEvent{
+		common.PublishDaemonEvent(MemberJobsChangedEvent{
 			NodeID: nodeID,
 			JobIDs: jobIDs,
 		})

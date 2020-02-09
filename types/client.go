@@ -1,9 +1,7 @@
 package types
 
-
 // DataHandler data handler for GetMany
 type KVHandler func(key []byte, value []byte) bool
-
 
 type Client interface {
 	BroadcastTxSync(msg *TxMsg) error

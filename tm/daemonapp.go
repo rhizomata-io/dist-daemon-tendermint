@@ -35,7 +35,7 @@ func NewDaemonApplication(config *cfg.Config, logger log.Logger, spaces []string
 }
 
 func (app *DaemonApp) registerSpace(name string) {
-	db, err := dbm.NewGoLevelDB("daemon", app.config.DBDir())
+	db, err := dbm.NewGoLevelDB(name, app.config.DBDir())
 	if err != nil {
 		panic(err)
 	}

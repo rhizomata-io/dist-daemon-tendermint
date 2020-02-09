@@ -142,7 +142,7 @@ func (manager *Manager) checkLeader(memberChanged bool) {
 		manager.logger.Error("Get Leader ", err)
 	}
 	
-	manager.logger.Info("[INFO-Cluster] Stored Leader is" , leaderID)
+	manager.logger.Info("[INFO-Cluster] Leader is" , leaderID)
 	
 	if oldLeader != nil {
 		if oldLeader.NodeID == leaderID {
@@ -184,11 +184,11 @@ func (manager *Manager) checkLeader(memberChanged bool) {
 func (manager *Manager) electLeader() *Member {
 	members := manager.cluster.GetSortedMembers()
 	
-	//fmt.Println("****** electLeader:: len(members) ", len(members))
+	// fmt.Println("****** electLeader:: len(members) ", len(members))
 	
 	for _, id := range members {
 		memb := manager.cluster.GetMember(id)
-		//fmt.Println("    ****** electLeader:: member ", id, memb)
+		// fmt.Println("    ****** electLeader:: member ", id, memb)
 		if memb.IsAlive() {
 			if memb.IsLocal() {
 				manager.dao.PutLeader(id)
@@ -197,8 +197,8 @@ func (manager *Manager) electLeader() *Member {
 		}
 	}
 	//
-	//local := manager.cluster.Local()
-	//manager.dao.PutLeader(local.NodeID)
+	// local := manager.cluster.Local()
+	// manager.dao.PutLeader(local.NodeID)
 	manager.logger.Error("No Leader elected.")
 	return nil
 }
@@ -211,12 +211,13 @@ func (manager *Manager) IsLeaderNode() bool {
 func (manager *Manager) onLeaderChanged(leader *Member) {
 	if manager.cluster.localMember == leader {
 		manager.logger.Info("[INFO-Cluster] Leader changed. I'm the leader")
+		manager.cluster.localMember.SetLeader(true)
 	} else {
 		manager.logger.Info("[INFO-Cluster] Leader changed.", "leader",
 			manager.cluster.leader.NodeID)
 	}
 	
-	common.PublishDaemonEvent(&LeaderChangedEvent{
+	common.PublishDaemonEvent(LeaderChangedEvent{
 		IsLeader: manager.cluster.localMember.IsLeader(),
 		Leader:   leader,
 	})
@@ -226,8 +227,9 @@ func (manager *Manager) onMemberChanged() {
 	manager.logger.Info("[INFO-Cluster] Members changed.", "members",
 		manager.cluster.GetAliveMemberIDs())
 	
-	common.PublishDaemonEvent(&MemberChangedEvent{
+	common.PublishDaemonEvent(MemberChangedEvent{
 		IsLeader:     manager.cluster.localMember.IsLeader(),
+		AliveMemberIDs: manager.cluster.GetAliveMemberIDs(),
 		AliveMembers: manager.cluster.GetAliveMembers(),
 	})
 }

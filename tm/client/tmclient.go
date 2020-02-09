@@ -149,6 +149,10 @@ func (client *TMClient) GetMany(msg *types.ViewMsg, handler types.KVHandler) (er
 		return err
 	}
 	
+	if len(data) == 0 {
+		return types.NewNoDataError()
+	}
+	
 	kvArray := []types.KeyValue{}
 	err = client.UnmarshalObject(data, &kvArray)
 	
@@ -178,6 +182,10 @@ func (client *TMClient) GetKeys(msg *types.ViewMsg) (keys []string, err error){
 		return nil, err
 	}
 	
+	if len(data) == 0 {
+		return nil, types.NewNoDataError()
+	}
+	
 	keys = []string{}
 	err = client.UnmarshalObject(data, &keys)
 	
@@ -196,8 +204,7 @@ func (client *TMClient) GetKeys(msg *types.ViewMsg) (keys []string, err error){
 
 func (client *TMClient) UnmarshalObject(bz []byte, ptr interface{}) error {
 	if len(bz) == 0 {
-		err := errors.New("[TMClient] UnmarshalObject []byte data is empty")
-		return err
+		return types.NewNoDataError()
 	}
 	
 	err := client.codec.UnmarshalBinaryBare(bz, ptr)
@@ -222,8 +229,7 @@ func (client *TMClient) MarshalObject(ptr interface{}) (bytes[]byte, err error) 
 
 func (client *TMClient) UnmarshalJson(bz []byte, ptr interface{}) error {
 	if len(bz) == 0 {
-		err := errors.New("[TMClient] UnmarshalJson []byte data is empty")
-		return err
+		return types.NewNoDataError()
 	}
 	
 	err := json.Unmarshal(bz, ptr)
