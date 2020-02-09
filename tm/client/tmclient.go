@@ -10,20 +10,20 @@ import (
 	"github.com/tendermint/tendermint/rpc/core"
 	rpctypes "github.com/tendermint/tendermint/rpc/lib/types"
 	
+	"github.com/rhizomata-io/dist-daemon-tendermint/tm/tmcom"
 	"github.com/rhizomata-io/dist-daemon-tendermint/types"
 )
 
 type TMClient struct {
 	config *cfg.Config
 	logger log.Logger
-	codec *types.Codec
+	codec  *types.Codec
 }
 
 var _ types.Client = (*TMClient)(nil)
 
-
-func NewClient( config *cfg.Config, logger log.Logger, codec *types.Codec) types.Client {
-	return &TMClient{ config, logger, codec}
+func NewClient(config *cfg.Config, logger log.Logger, codec *types.Codec) types.Client {
+	return &TMClient{config, logger, codec}
 }
 
 func (client *TMClient) BroadcastTxSync(msg *types.TxMsg) (err error) {
@@ -72,15 +72,20 @@ func (client *TMClient) BroadcastTxCommit(msg *types.TxMsg) (err error) {
 }
 
 func (client *TMClient) Commit() (err error) {
-	_, err = core.Commit(&rpctypes.Context{}, nil)
+	// _, err = core.Commit(&rpctypes.Context{}, nil)
+	// if err != nil {
+	// 	client.logger.Error("[TMClient] Commit : ", err)
+	// }
+	msgBytes, err := types.EncodeTxMsg(&types.TxMsg{Type: types.TxCommit, Space: tmcom.SpaceDaemonState})
+	_, err = core.BroadcastTxCommit(&rpctypes.Context{}, msgBytes)
 	if err != nil {
-		client.logger.Error("[TMClient] Commit : ", err)
+		client.logger.Error("[TMClient] BroadcastTxCommit", err)
+		return err
 	}
 	return err
 }
 
-
-func (client *TMClient) Has(msg *types.ViewMsg) (ok bool, err error){
+func (client *TMClient) Has(msg *types.ViewMsg) (ok bool, err error) {
 	if msg.Type != types.Has {
 		return ok, errors.New("[TMClient] Has needs ViewType Has")
 	}
@@ -117,8 +122,7 @@ func (client *TMClient) Query(msg *types.ViewMsg) (data []byte, err error) {
 	return res.Response.Value, err
 }
 
-
-func (client *TMClient) GetObject(msg *types.ViewMsg, obj interface{}) (err error){
+func (client *TMClient) GetObject(msg *types.ViewMsg, obj interface{}) (err error) {
 	if msg.Type != types.GetOne {
 		return errors.New("[TMClient] GetObject needs ViewType GetOne")
 	}
@@ -138,7 +142,7 @@ func (client *TMClient) GetObject(msg *types.ViewMsg, obj interface{}) (err erro
 	return err
 }
 
-func (client *TMClient) GetMany(msg *types.ViewMsg, handler types.KVHandler) (err error){
+func (client *TMClient) GetMany(msg *types.ViewMsg, handler types.KVHandler) (err error) {
 	if msg.Type != types.GetMany {
 		return errors.New("[TMClient] GetMany needs ViewType GetMany")
 	}
@@ -169,8 +173,7 @@ func (client *TMClient) GetMany(msg *types.ViewMsg, handler types.KVHandler) (er
 	return err
 }
 
-
-func (client *TMClient) GetKeys(msg *types.ViewMsg) (keys []string, err error){
+func (client *TMClient) GetKeys(msg *types.ViewMsg) (keys []string, err error) {
 	if msg.Type != types.GetKeys {
 		return nil, errors.New("[TMClient] GetKeys needs ViewType GetKeys")
 	}
@@ -197,7 +200,6 @@ func (client *TMClient) GetKeys(msg *types.ViewMsg) (keys []string, err error){
 	return keys, err
 }
 
-
 // func (client *TMClient) Subscribe(msg *types.ViewMsg) (keys []string, err error){
 // 	core.Subscribe(&rpctypes.Context{}, )
 // }
@@ -216,7 +218,7 @@ func (client *TMClient) UnmarshalObject(bz []byte, ptr interface{}) error {
 	return err
 }
 
-func (client *TMClient) MarshalObject(ptr interface{}) (bytes[]byte, err error) {
+func (client *TMClient) MarshalObject(ptr interface{}) (bytes []byte, err error) {
 	bytes, err = client.codec.MarshalBinaryBare(ptr)
 	
 	if err != nil {
@@ -225,7 +227,6 @@ func (client *TMClient) MarshalObject(ptr interface{}) (bytes[]byte, err error) 
 	}
 	return bytes, err
 }
-
 
 func (client *TMClient) UnmarshalJson(bz []byte, ptr interface{}) error {
 	if len(bz) == 0 {
@@ -241,7 +242,7 @@ func (client *TMClient) UnmarshalJson(bz []byte, ptr interface{}) error {
 	return err
 }
 
-func (client *TMClient) MarshalJson(ptr interface{}) (bytes[]byte, err error) {
+func (client *TMClient) MarshalJson(ptr interface{}) (bytes []byte, err error) {
 	bytes, err = json.Marshal(ptr)
 	
 	if err != nil {
@@ -250,4 +251,3 @@ func (client *TMClient) MarshalJson(ptr interface{}) (bytes[]byte, err error) {
 	}
 	return bytes, err
 }
-

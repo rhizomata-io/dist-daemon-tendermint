@@ -8,6 +8,7 @@ import (
 	"github.com/rhizomata-io/dist-daemon-tendermint/daemon/common"
 	"github.com/rhizomata-io/dist-daemon-tendermint/daemon/job"
 	"github.com/rhizomata-io/dist-daemon-tendermint/daemon/worker"
+	"github.com/rhizomata-io/dist-daemon-tendermint/daemon/worker/hello"
 	
 	cfg "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/libs/log"
@@ -43,6 +44,10 @@ func NewDaemon(tmCfg *cfg.Config, logger log.Logger, tmNode *node.Node, config c
 func (dm *Daemon) SetJobOrganizer(organizer   job.Organizer){
 	dm.jobOrganizer = organizer
 }
+// RegisterWorkerFactory register worker.Factory
+func (dm *Daemon) RegisterWorkerFactory(factory worker.Factory) {
+	dm.workerManager.RegisterWorkerFactory(factory)
+}
 
 func (dm *Daemon) Start() {
 	go func() {
@@ -58,6 +63,8 @@ func (dm *Daemon) Start() {
 			dm.jobOrganizer = job.NewSimpleOrganizer()
 		}
 		
+		dm.workerManager.RegisterWorkerFactory(&hello.Factory{})
+		
 		common.SubscribeDaemonEvent(cluster.MemberChangedEventPath,
 			"onMemberChanged",
 			dm.onMemberChanged)
@@ -65,6 +72,9 @@ func (dm *Daemon) Start() {
 		common.SubscribeDaemonEvent(job.MemberJobsChangedEventPath,
 			"onMemberJobsChanged",
 			dm.onMemberJobsChanged)
+		
+		
+		common.PublishDaemonEvent(StartedEvent{})
 	}()
 }
 

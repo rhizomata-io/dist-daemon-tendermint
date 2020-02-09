@@ -29,6 +29,10 @@ func NewManager(config common.DaemonConfig, logger log.Logger, client types.Clie
 	return &manager
 }
 
+func (manager *Manager) RegisterWorkerFactory(factory Factory) {
+	manager.facReg.RegisterFactory(factory)
+}
+
 func (manager *Manager) GetRepository() Repository {
 	return manager.dao
 }

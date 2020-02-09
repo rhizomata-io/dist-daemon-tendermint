@@ -19,6 +19,8 @@ import (
 	dbm "github.com/tendermint/tm-db"
 	
 	"github.com/rhizomata-io/dist-daemon-tendermint/tm/events"
+	"github.com/rhizomata-io/dist-daemon-tendermint/tm/store"
+	"github.com/rhizomata-io/dist-daemon-tendermint/tm/tmcom"
 )
 
 var (
@@ -69,27 +71,49 @@ type BaseApplication struct {
 	// validator set
 	ValUpdates         []abcitypes.ValidatorUpdate
 	valAddrToPubKeyMap map[string]abcitypes.PubKey
+	spaces map[string]*store.Registry
 }
 
 var _ abcitypes.Application = (*BaseApplication)(nil)
 
 func NewBaseApplication(config *cfg.Config, logger log.Logger) (bapp *BaseApplication) {
-	db, err := dbm.NewGoLevelDB("daemon_state", config.DBDir())
+	bapp = &BaseApplication{
+		config:             config,
+		logger:             logger,
+		ValUpdates:         []abcitypes.ValidatorUpdate{},
+		valAddrToPubKeyMap: make(map[string]abcitypes.PubKey),
+		spaces: make(map[string]*store.Registry),
+	}
+	
+	registry := bapp.registerSpace(tmcom.SpaceDaemonState)
+	
+	bapp.state = loadState(registry.DB())
+	
+	return bapp
+}
+
+func (app *BaseApplication) registerSpace(name string) *store.Registry {
+	db, err := dbm.NewGoLevelDB(name, app.config.DBDir())
 	if err != nil {
 		panic(err)
 	}
 	
-	state := loadState(db)
-	
-	bapp = &BaseApplication{
-		config:             config,
-		logger:             logger,
-		state:              state,
-		ValUpdates:         []abcitypes.ValidatorUpdate{},
-		valAddrToPubKeyMap: make(map[string]abcitypes.PubKey),
+	storeRegistry := store.NewRegistry(db)
+	app.spaces[name] = storeRegistry
+	return storeRegistry
+}
+
+func (app *BaseApplication) getSpace(name string) *store.Registry {
+	storeRegistry, ok := app.spaces[name]
+	if !ok {
+		panic(fmt.Sprintf("DB Space[%s] is not registered.", name))
 	}
-	
-	return bapp
+	return storeRegistry
+}
+
+func (app *BaseApplication) getSpaceStoreAny(space string, path string) *store.Store {
+	storeRegistry := app.getSpace(space)
+	return storeRegistry.GetOrMakeStore(path)
 }
 
 func (app *BaseApplication) IncreaseTxSize() {

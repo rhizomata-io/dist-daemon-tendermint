@@ -213,7 +213,7 @@ func (manager *Manager) onLeaderChanged(leader *Member) {
 		manager.logger.Info("[INFO-Cluster] Leader changed. I'm the leader")
 		manager.cluster.localMember.SetLeader(true)
 	} else {
-		manager.logger.Info("[INFO-Cluster] Leader changed.", "leader",
+		manager.logger.Info("[INFO-Cluster] Leader is set", "leader",
 			manager.cluster.leader.NodeID)
 	}
 	

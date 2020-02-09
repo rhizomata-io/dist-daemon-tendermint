@@ -34,7 +34,7 @@ func (dao *jobDao) PutMemberJobIDs(nodeid string, jobIDs []string) (err error) {
 		return err
 	}
 	
-	msg := types.NewTxMsg(types.TxSet, common.SpaceDaemon, PathMemberJobs, nodeid, jobIDsBytes)
+	msg := types.NewTxMsg(types.TxSetSync, common.SpaceDaemon, PathMemberJobs, nodeid, jobIDsBytes)
 	
 	return dao.client.BroadcastTxSync(msg)
 }
@@ -95,9 +95,14 @@ func (dao *jobDao) PutJob(job Job) (err error) {
 		return err
 	}
 	
-	msg := types.NewTxMsg(types.TxSet, common.SpaceDaemon, PathJobs, job.ID, bytes)
-	
-	return dao.client.BroadcastTxSync(msg)
+	msg := types.NewTxMsg(types.TxSetSync, common.SpaceDaemon, PathJobs, job.ID, bytes)
+	err = dao.client.BroadcastTxSync(msg)
+	if err != nil {
+		dao.logger.Error("PutJob " + job.ID, err)
+	} else {
+		dao.logger.Info("PutJob", "jobID", job.ID)
+	}
+	return err
 }
 
 // PutJob ..
@@ -110,8 +115,26 @@ func (dao *jobDao) PutJobIfNotExist(job Job) error {
 
 // RemoveJob ..
 func (dao *jobDao) RemoveJob(jobID string) (err error) {
-	msg := types.NewTxMsg(types.TxDelete, common.SpaceDaemon, PathJobs, jobID, nil)
+	msg := types.NewTxMsg(types.TxDeleteSync, common.SpaceDaemon, PathJobs, jobID, nil)
 	err = dao.client.BroadcastTxSync(msg)
+	if err != nil {
+		dao.logger.Error("RemoveJob " + jobID, err)
+	} else {
+		dao.logger.Info("RemoveJob", "jobID", jobID)
+	}
+	return err
+}
+
+// RemoveAllJobs ..
+func (dao *jobDao) RemoveAllJobs() (err error) {
+	jobIDs,err := dao.GetAllJobIDs()
+	if err != nil {
+		return err
+	}
+	for _, id := range jobIDs {
+		dao.RemoveJob(id)
+	}
+	dao.Commit()
 	return err
 }
 
@@ -157,4 +180,8 @@ func (dao *jobDao) GetAllJobs() (jobs map[string]Job, err error) {
 	return jobs, err
 }
 
+
+func (dao *jobDao) Commit() (err error) {
+	return dao.client.Commit()
+}
 

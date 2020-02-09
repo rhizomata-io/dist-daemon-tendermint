@@ -164,6 +164,10 @@ func NewRegistry(db dbm.DB) *Registry {
 	return &Registry{pathStores: make(map[string]*Store), db: db}
 }
 
+func (reg *Registry) DB() dbm.DB {
+	return reg.db
+}
+
 func (reg *Registry) RegisterStore(path string) error {
 	reg.Lock()
 	defer reg.Unlock()

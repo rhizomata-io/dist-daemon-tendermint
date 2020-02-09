@@ -95,9 +95,15 @@ func AddNodeFlags(cmd *cobra.Command) {
 		"Database directory")
 }
 
+// AddNodeFlags exposes some common configuration options on the command-line
+// These are exposed for convenience of commands embedding a tendermint node
+func AddDaemonFlags(cmd *cobra.Command) {
+	cmd.Flags().Uint("daemon.alive_threshold",2,"Alive Threshold Seconds")
+}
+
 // NewRunNodeCmd returns the command that allows the CLI to start a node.
 // It can be used with a custom PrivValidator and in-process ABCI application.
-func NewStartCmd(nodeProvider nm.Provider) *cobra.Command {
+func NewStartCmd(nodeProvider nm.Provider, daemonProvider daemon.Provider) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start",
 		Short: "Run Dist-Daemon tendermint node",
@@ -123,14 +129,21 @@ func NewStartCmd(nodeProvider nm.Provider) *cobra.Command {
 			}
 			logger.Info("Started node", "nodeInfo", n.Switch().NodeInfo())
 			
+			
+			threshold, err := cmd.Flags().GetUint("daemon.alive_threshold")
+			
+			if err != nil{
+				threshold = 2
+			}
+			
 			daemonConfig := dmcfg.DaemonConfig{
 				ChainID:               config.ChainID(),
 				NodeID:                string(n.NodeInfo().ID()),
 				NodeName:              config.Moniker,
-				AliveThresholdSeconds: 2,
+				AliveThresholdSeconds: threshold,
 			}
 			
-			dm := daemon.NewDaemon(config, logger, n, daemonConfig)
+			dm := daemonProvider(config, logger, n, daemonConfig)
 			dm.Start()
 			// Run forever.
 			select {}
@@ -138,6 +151,7 @@ func NewStartCmd(nodeProvider nm.Provider) *cobra.Command {
 	}
 	
 	AddNodeFlags(cmd)
+	AddDaemonFlags(cmd)
 	return cmd
 }
 

@@ -12,6 +12,7 @@ type Repository interface {
 	PutJob(job Job) error
 	PutJobIfNotExist(job Job) error
 	RemoveJob(jobID string) error
+	RemoveAllJobs() error
 	GetJob(jobID string) (job Job, err error)
 	ContainsJob(jobID string) bool
 	GetAllJobIDs() (jobIDs []string, err error)
@@ -20,6 +21,7 @@ type Repository interface {
 	GetAllMemberJobIDs() (membJobMap map[string][]string, err error)
 	PutMemberJobIDs(membID string, jobIDs []string) (err error)
 	GetMemberJobs(membID string) (jobs []Job, err error)
+	Commit() error
 }
 
 func init() {
@@ -34,9 +36,9 @@ type Job struct {
 }
 
 // NewJob create new job with uuid
-func New(factory string, data []byte) Job {
+func New(factoryName string, data []byte) Job {
 	uuid := uuid.New()
-	return Job{FactoryName: factory, ID: uuid.String(), Data: data}
+	return Job{FactoryName: factoryName, ID: uuid.String(), Data: data}
 }
 
 // NewWithID create new job with pi

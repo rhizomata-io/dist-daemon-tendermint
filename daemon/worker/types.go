@@ -27,6 +27,12 @@ type Repository interface {
 	GetObject(jobID string, topic string, rowID string, data interface{}) error
 	DeleteData(jobID string, topic string, rowID string) error
 	GetDataWithTopic(jobID string, topic string, handler DataHandler) error
+	
+	PutDataFullPath(path string, data []byte) error
+	PutObjectFullPath(path string, data interface{}) error
+	GetDataFullPath(path string) (data []byte, err error)
+	GetObjectFullPath(path string, data interface{}) (err error)
+	DeleteDataFullPath(path string) error
 }
 
 // Worker ..
@@ -49,7 +55,6 @@ type Helper struct {
 	logger  log.Logger
 	job     job.Job
 	dao     Repository
-	started bool
 }
 
 // NewHelper ..
@@ -75,9 +80,14 @@ func (helper *Helper) Job() job.Job {
 	return helper.job
 }
 
-// Job get node's config
+// Config get node's config
 func (helper *Helper) Config() common.DaemonConfig {
 	return helper.config
+}
+
+// Config get worker's Repository
+func (helper *Helper) GetRepository() Repository {
+	return helper.dao
 }
 
 // Info log info
@@ -96,12 +106,6 @@ func (helper *Helper) Error(msg string, keyvals ...interface{}) {
 }
 
 
-
-// IsStarted whether worker is started
-func (helper *Helper) IsStarted() bool {
-	return helper.started
-}
-
 // PutCheckpoint ..
 func (helper *Helper) PutCheckpoint(checkpoint interface{}) error {
 	return helper.dao.PutCheckpoint(helper.ID(), checkpoint)
@@ -118,19 +122,14 @@ func (helper *Helper) PutData(topic string, rowID string, data []byte) error {
 }
 
 // PutDataFullPath ..
-// func (helper *Helper) PutDataFullPath(fullPath string, data string) error {
-// 	return helper.dao.PutDataFullPath(fullPath, data)
-// }
+func (helper *Helper) PutDataFullPath(fullPath string, data []byte) error {
+	return helper.dao.PutDataFullPath(fullPath, data)
+}
 
 // PutObject ..
 func (helper *Helper) PutObject(topic string, rowID string, data interface{}) error {
 	return helper.dao.PutObject(helper.ID(), topic, rowID, data)
 }
-
-// PutObjectFullPath ..
-// func (helper *Helper) PutObjectFullPath(fullPath string, data interface{}) error {
-// 	return helper.dao.PutObjectFullPath(fullPath, data)
-// }
 
 // GetData ..
 func (helper *Helper) GetData(topic string, rowID string) (data []byte, err error) {
@@ -151,23 +150,6 @@ func (helper *Helper) GetDataList(topic string, handler DataHandler) error {
 func (helper *Helper) DeleteData(topic string, rowID string) error {
 	return helper.dao.DeleteData(helper.ID(), topic, rowID)
 }
-
-// // DeleteDataFullPath ..
-// func (helper *Helper) DeleteDataFullPath(key string) error {
-// 	return helper.dao.DeleteDataFullPath(key)
-// }
-
-// // WatchDataWithTopic ..
-// func (helper *Helper) WatchDataWithTopic(topic string,
-// 	handler func(eventType kv.EventType, fullPath string, rowID string, value []byte)) *kv.Watcher {
-// 	return helper.dao.WatchDataWithTopic(helper.id, topic, handler)
-// }
-//
-// // WatchData ..
-// func (helper *Helper) WatchData(topic string, rowID string,
-// 	handler func(eventType kv.EventType, fullPath string, rowID string, value []byte)) *kv.Watcher {
-// 	return helper.dao.WatchData(helper.id, topic, rowID, handler)
-// }
 
 
 type factoryRegistry struct {

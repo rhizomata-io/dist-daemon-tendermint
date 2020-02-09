@@ -88,14 +88,10 @@ func (dao *workerDao) PutData(jobID string, topic string, rowID string, data []b
 }
 
 // PutDataFullPath ..
-// func (dao *workerDao) PutDataFullPath(fullPath string, data string) error {
-// 	msg := types.NewTxMsg(types.TxSet, common.SpaceDaemonData, fullPath, "", data)
-// 	_, err := dao.kv.Put(fullPath, data)
-// 	if err != nil {
-// 		log.Println("[ERROR-WorkerDao] PutDataFullPath", err)
-// 	}
-// 	return err
-// }
+func (dao *workerDao) PutDataFullPath(fullPath string, data []byte) error {
+	msg := types.NewTxMsg(types.TxSet, common.SpaceDaemonData, fullPath, "", data)
+	return dao.client.BroadcastTxAsync(msg)
+}
 
 // PutObject data type must be registered to Codec
 func (dao *workerDao) PutObject(jobID string, topic string, rowID string, data interface{}) error {
@@ -108,14 +104,13 @@ func (dao *workerDao) PutObject(jobID string, topic string, rowID string, data i
 }
 
 // PutObjectFullPath ..
-// func (dao *workerDao) PutObjectFullPath(fullPath string, data interface{}) error {
-// 	_, err := dao.kv.PutObject(fullPath, data)
-// 	if err != nil {
-// 		log.Println("[ERROR-WorkerDao] PutObjectFullPath", err)
-// 	}
-// 	// fmt.Println("&&&&& PutObjectFullPath :: fullPath=", fullPath, ", data=", data)
-// 	return err
-// }
+func (dao *workerDao) PutObjectFullPath(fullPath string, data interface{}) error {
+	dataBytes, err := dao.client.MarshalObject(data)
+	if err != nil {
+		dao.logger.Error("[ERROR-WorkerDao] PutObjectFullPath marshal", err)
+	}
+	return dao.PutDataFullPath(fullPath, dataBytes)
+}
 
 // GetData ..
 func (dao *workerDao) GetData(jobID string, topic string, rowID string) (data []byte, err error) {
@@ -128,9 +123,28 @@ func (dao *workerDao) GetData(jobID string, topic string, rowID string) (data []
 	return bytes, err
 }
 
+// GetData ..
+func (dao *workerDao) GetDataFullPath(fullPath string) (data []byte, err error) {
+	msg := types.NewViewMsgOne(common.SpaceDaemonData, fullPath, "")
+	bytes, err := dao.client.Query(msg)
+	if err != nil {
+		return nil, err
+	}
+	return bytes, err
+}
+
 // GetObject data type must be registered to Codec
 func (dao *workerDao) GetObject(jobID string, topic string, rowID string, data interface{}) error {
 	bytes, err := dao.GetData(jobID, topic, rowID)
+	if err != nil {
+		return err
+	}
+	return dao.client.UnmarshalObject(bytes, data)
+}
+
+// GetObjectFullPath data type must be registered to Codec
+func (dao *workerDao) GetObjectFullPath(fullPath string, data interface{}) error {
+	bytes, err := dao.GetDataFullPath(fullPath)
 	if err != nil {
 		return err
 	}
@@ -150,14 +164,15 @@ func (dao *workerDao) DeleteData(jobID string, topic string, rowID string) error
 }
 
 // DeleteDataFullPath ..
-// func (dao *workerDao) DeleteDataFullPath(key string) error {
-// 	_, err := dao.kv.DeleteOne(key)
-// 	if err != nil {
-// 		log.Println("[ERROR-WorkerDao] GetData ", err)
-// 	}
-// 	// fmt.Println("^^^^^^ DeleteDataFullPath :: key=", key)
-// 	return err
-// }
+func (dao *workerDao) DeleteDataFullPath(fullPath string) error {
+	msg := types.NewTxMsg(types.TxDelete, common.SpaceDaemonData, fullPath, "", nil)
+	err := dao.client.BroadcastTxSync(msg)
+	if err != nil {
+		dao.logger.Error("[ERROR-WorkerDao] DeleteData ", err)
+	}
+	
+	return err
+}
 
 // GetDataWithTopic ..
 func (dao *workerDao) GetDataWithTopic(jobID string, topic string, handler DataHandler) error {

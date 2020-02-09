@@ -3,15 +3,13 @@ package types
 type ViewType uint8
 type TxType uint8
 
-
-
 var (
-	LastKeySuffix = "~~~"
+	LastKeySuffix      = "~~~"
 	LastKeySuffixBytes = []byte(LastKeySuffix)
 )
 
 const (
-	Has = ViewType(0)
+	Has     = ViewType(0)
 	GetOne  = ViewType(1)
 	GetMany = ViewType(2)
 	GetKeys = ViewType(3)
@@ -22,6 +20,7 @@ const (
 	TxSetSync    = TxType(12)
 	TxDelete     = TxType(21)
 	TxDeleteSync = TxType(22)
+	TxCommit     = TxType(90)
 )
 
 func TxTypeString(typ TxType) string {
@@ -78,8 +77,6 @@ func DecodeTxMsg(msgBytes []byte) (*TxMsg, error) {
 	err := BasicCdc.UnmarshalBinaryBare(msgBytes, msg)
 	return msg, err
 }
-
-
 
 type ViewMsg struct {
 	Type  ViewType

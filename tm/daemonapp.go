@@ -2,12 +2,10 @@ package tm
 
 import (
 	"fmt"
+	
 	"github.com/rhizomata-io/dist-daemon-tendermint/tm/events"
 	
 	cfg "github.com/tendermint/tendermint/config"
-	dbm "github.com/tendermint/tm-db"
-	
-	"github.com/rhizomata-io/dist-daemon-tendermint/tm/store"
 	
 	"github.com/tendermint/tendermint/abci/example/code"
 	abcitypes "github.com/tendermint/tendermint/abci/types"
@@ -18,43 +16,19 @@ import (
 
 type DaemonApp struct {
 	*BaseApplication
-	spaces map[string]*store.Registry
 }
 
 var _ abcitypes.Application = (*DaemonApp)(nil)
 
 func NewDaemonApplication(config *cfg.Config, logger log.Logger, spaces []string) (dapp *DaemonApp) {
 	baseapp := NewBaseApplication(config, logger)
-	dapp = &DaemonApp{BaseApplication: baseapp, spaces: make(map[string]*store.Registry)}
+	dapp = &DaemonApp{BaseApplication: baseapp}
 	
 	for _, name := range spaces {
 		dapp.registerSpace(name)
 	}
 	
 	return dapp
-}
-
-func (app *DaemonApp) registerSpace(name string) {
-	db, err := dbm.NewGoLevelDB(name, app.config.DBDir())
-	if err != nil {
-		panic(err)
-	}
-	
-	storeRegistry := store.NewRegistry(db)
-	app.spaces[name] = storeRegistry
-}
-
-func (app *DaemonApp) getSpace(name string) *store.Registry {
-	storeRegistry, ok := app.spaces[name]
-	if !ok {
-		panic(fmt.Sprintf("DB Space[%s] is not registered.", name))
-	}
-	return storeRegistry
-}
-
-func (app *DaemonApp) getSpaceStoreAny(space string, path string) *store.Store {
-	storeRegistry := app.getSpace(space)
-	return storeRegistry.GetOrMakeStore(path)
 }
 
 func (app *DaemonApp) DeliverTx(req abcitypes.RequestDeliverTx) abcitypes.ResponseDeliverTx {
@@ -83,6 +57,10 @@ func (app *DaemonApp) DeliverTx(req abcitypes.RequestDeliverTx) abcitypes.Respon
 			store.Delete(msg.Key)
 		case types.TxDeleteSync:
 			store.DeleteSync(msg.Key)
+		case types.TxCommit:
+			// DO NOTHING
+		default:
+			app.logger.Error("[DMA] Unknown TxMsg ", "type", msg.Type)
 		}
 	}
 	
@@ -169,7 +147,7 @@ func (app *DaemonApp) Query(reqQuery abcitypes.RequestQuery) (resQuery abcitypes
 		}
 		
 		resQuery.Value = bytes
-	} else if msg.Type == types.GetMany {
+	} else if msg.Type == types.GetKeys {
 		bytes, err := store.GetKeys(msg.Start, msg.End)
 		
 		if err != nil {
