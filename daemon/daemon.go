@@ -14,7 +14,6 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/node"
 	
-	"github.com/rhizomata-io/dist-daemon-tendermint/tm/client"
 	"github.com/rhizomata-io/dist-daemon-tendermint/types"
 )
 
@@ -24,6 +23,7 @@ type Daemon struct {
 	tmCfg          *cfg.Config
 	logger         log.Logger
 	client         types.Client
+	context        common.Context
 	clusterManager *cluster.Manager
 	jobManager     *job.Manager
 	workerManager  *worker.Manager
@@ -31,13 +31,19 @@ type Daemon struct {
 }
 
 func NewDaemon(tmCfg *cfg.Config, logger log.Logger, tmNode *node.Node, config common.DaemonConfig) (dm *Daemon) {
-	dm = &Daemon{tmCfg: tmCfg, logger: logger, tmNode: tmNode}
-	dm.client = client.NewClient(tmCfg, logger, types.BasicCdc)
+	ctx := common.NewContext(tmCfg , logger , tmNode , config)
+	dm = &Daemon{
+		context: ctx,
+		tmCfg: tmCfg,
+		logger: logger,
+		tmNode: tmNode,
+	}
+	dm.client = ctx.GetClient()
 	dm.id = string(dm.tmNode.NodeInfo().ID())
 	
-	dm.clusterManager = cluster.NewManager(config, logger, dm.client)
-	dm.jobManager = job.NewManager(config, logger, dm.client)
-	dm.workerManager = worker.NewManager(config, logger, dm.client)
+	dm.clusterManager = cluster.NewManager(ctx)
+	dm.jobManager = job.NewManager(ctx)
+	dm.workerManager = worker.NewManager(ctx)
 	return dm
 }
 
@@ -72,7 +78,6 @@ func (dm *Daemon) Start() {
 		common.SubscribeDaemonEvent(job.MemberJobsChangedEventPath,
 			"onMemberJobsChanged",
 			dm.onMemberJobsChanged)
-		
 		
 		common.PublishDaemonEvent(StartedEvent{})
 	}()

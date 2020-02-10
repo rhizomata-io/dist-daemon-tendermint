@@ -8,11 +8,11 @@ import (
 	
 	"github.com/rhizomata-io/dist-daemon-tendermint/daemon/common"
 	"github.com/rhizomata-io/dist-daemon-tendermint/daemon/job"
-	"github.com/rhizomata-io/dist-daemon-tendermint/types"
 )
 
 // Manager manager for jobs
 type Manager struct {
+	common.Context
 	config  common.DaemonConfig
 	dao     Repository
 	logger  log.Logger
@@ -21,9 +21,9 @@ type Manager struct {
 }
 
 // NewManager ..
-func NewManager(config common.DaemonConfig, logger log.Logger, client types.Client) *Manager {
-	dao := NewRepository(config, logger, client)
-	manager := Manager{config: config, dao: dao, logger: logger}
+func NewManager(context common.Context) *Manager {
+	dao := NewRepository(context.GetConfig(), context, context.GetClient())
+	manager := Manager{Context: context, dao: dao}
 	manager.facReg = NewFactoryRegistry()
 	manager.workers = make(map[string]Worker)
 	return &manager

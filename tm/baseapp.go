@@ -95,7 +95,7 @@ func NewBaseApplication(config *cfg.Config, logger log.Logger) (bapp *BaseApplic
 func (app *BaseApplication) registerSpace(name string) *store.Registry {
 	db, err := dbm.NewGoLevelDB(name, app.config.DBDir())
 	if err != nil {
-		panic(err)
+		panic("[ERROR] Register Space '"+name + "' : " + err.Error())
 	}
 	
 	storeRegistry := store.NewRegistry(db)

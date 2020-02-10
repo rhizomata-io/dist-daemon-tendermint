@@ -5,32 +5,32 @@ import (
 	"github.com/rhizomata-io/dist-daemon-tendermint/daemon/common"
 	tmevents "github.com/rhizomata-io/dist-daemon-tendermint/tm/events"
 	"github.com/rhizomata-io/dist-daemon-tendermint/types"
-	"github.com/tendermint/tendermint/libs/log"
 	"time"
 )
 
 type Manager struct {
-	config  common.DaemonConfig
-	logger  log.Logger
+	common.Context
 	cluster *Cluster
 	dao     Repository
 	running bool
 }
 
-func NewManager(config common.DaemonConfig, logger log.Logger, client types.Client) *Manager {
-	cluster := newCluster(config.ChainID)
-	dao := NewRepository(config, logger, client)
+func NewManager(context common.Context) *Manager {
+	//config common.DaemonConfig, logger log.Logger, client types.Client
+	cluster := newCluster(context.GetConfig().ChainID)
+	dao := NewRepository(context.GetConfig(), context, context.GetClient())
 	
 	manager := &Manager{
-		config:  config,
-		logger:  logger,
+		Context: context,
+		//config:  config,
+		//logger:  logger,
 		cluster: cluster,
 		dao:     dao,
 	}
 	
 	localMemb := Member{
-		NodeID:    config.NodeID,
-		Name:      config.NodeName,
+		NodeID:    context.GetConfig().NodeID,
+		Name:      context.GetConfig().NodeName,
 		heartbeat: time.Now(),
 		leader:    false,
 		alive:     true,
@@ -49,22 +49,22 @@ func (manager *Manager) Start() {
 	err := manager.dao.PutMember(manager.cluster.localMember)
 	
 	if err != nil {
-		manager.logger.Error("Cannot PutMember.", err)
+		manager.Error("Cannot PutMember.", err)
 		panic(err)
 	}
 	
-	err = manager.dao.PutHeartbeat(manager.config.NodeID)
+	err = manager.dao.PutHeartbeat(manager.GetNodeID())
 	
 	if err != nil {
-		manager.logger.Error("Cannot send Heartbeat.", err)
+		manager.Error("Cannot send Heartbeat.", err)
 		panic(err)
 	}
 	
 	tmevents.SubscribeBlockEvent(tmevents.BeginBlockEventPath, "heartbeat", func(event types.Event) {
 		// fmt.Println("heartbeat ", event)
-		err := manager.dao.PutHeartbeat(manager.config.NodeID)
+		err := manager.dao.PutHeartbeat(manager.GetNodeID())
 		if err != nil {
-			manager.logger.Error("Cannot send Heartbeat.", err)
+			manager.Error("Cannot send Heartbeat.", err)
 		}
 	})
 	
@@ -77,7 +77,7 @@ func (manager *Manager) Start() {
 			}
 		})
 		if err != nil {
-			manager.logger.Error("[FATAL] Cannot check heartbeats.", err)
+			manager.Error("[FATAL] Cannot check heartbeats.", err)
 		}
 		
 		manager.checkLeader(changed)
@@ -87,7 +87,7 @@ func (manager *Manager) Start() {
 		}
 	})
 	
-	manager.logger.Info("[INFO-Cluster] Start Cluster Manager.")
+	manager.Info("[INFO-Cluster] Start Cluster Manager.")
 }
 
 // returns true if member state changed
@@ -96,7 +96,7 @@ func (manager *Manager) handleHeartbeat(nodeid string, tm time.Time) (changed bo
 	if member == nil {
 		memb, err := manager.dao.GetMember(nodeid)
 		if err != nil {
-			manager.logger.Error(fmt.Sprintf("[FATAL] Cannot find member [%s]", nodeid), err)
+			manager.Error(fmt.Sprintf("[FATAL] Cannot find member [%s]", nodeid), err)
 			return false
 		}
 		member = &memb
@@ -109,8 +109,8 @@ func (manager *Manager) handleHeartbeat(nodeid string, tm time.Time) (changed bo
 		member.SetAlive(true)
 	} else if member.Heartbeat().IsZero() || tm.Equal(member.Heartbeat()) {
 		gap := time.Now().Sub(tm).Seconds()
-		if gap > float64(manager.config.AliveThresholdSeconds) {
-			manager.logger.Info(fmt.Sprintf("Member[%s] haven't sent heartbeat for %f seconds.",member.NodeID,gap))
+		if gap > float64(manager.GetConfig().AliveThresholdSeconds) {
+			manager.Info(fmt.Sprintf("Member[%s] haven't sent heartbeat for %f seconds.", member.NodeID, gap))
 			member.SetAlive(false)
 		} else {
 			member.SetAlive(true)
@@ -139,17 +139,17 @@ func (manager *Manager) checkLeader(memberChanged bool) {
 	
 	leaderID, err := manager.dao.GetLeader()
 	if err != nil {
-		manager.logger.Error("Get Leader ", err)
+		manager.Error("Get Leader ", err)
 	}
 	
-	manager.logger.Info("[INFO-Cluster] Leader is" , leaderID)
+	manager.Info("[INFO-Cluster] Leader is", leaderID)
 	
 	if oldLeader != nil {
 		if oldLeader.NodeID == leaderID {
 			if oldLeader.IsAlive() {
 				return
 			}
-			manager.logger.Info("[INFO-Cluster] Old leader is dead. " , oldLeader.NodeID)
+			manager.Info("[INFO-Cluster] Old leader is dead. ", oldLeader.NodeID)
 			oldLeader.SetLeader(false)
 			manager.cluster.leader = nil
 		} else {
@@ -163,10 +163,10 @@ func (manager *Manager) checkLeader(memberChanged bool) {
 	if len(leaderID) > 0 {
 		leader = manager.cluster.GetMember(leaderID)
 		if leader == nil {
-			manager.logger.Info("[INFO-Cluster] Old leader is missing. " , leaderID)
+			manager.Info("[INFO-Cluster] Old leader is missing. ", leaderID)
 			leader = manager.electLeader()
 		} else if !leader.IsAlive() {
-			manager.logger.Info("[INFO-Cluster] Old leader is dead. " , leaderID)
+			manager.Info("[INFO-Cluster] Old leader is dead. ", leaderID)
 			leader.SetLeader(false)
 			leader = manager.electLeader()
 		}
@@ -199,7 +199,7 @@ func (manager *Manager) electLeader() *Member {
 	//
 	// local := manager.cluster.Local()
 	// manager.dao.PutLeader(local.NodeID)
-	manager.logger.Error("No Leader elected.")
+	manager.Error("No Leader elected.")
 	return nil
 }
 
@@ -210,10 +210,10 @@ func (manager *Manager) IsLeaderNode() bool {
 
 func (manager *Manager) onLeaderChanged(leader *Member) {
 	if manager.cluster.localMember == leader {
-		manager.logger.Info("[INFO-Cluster] Leader changed. I'm the leader")
+		manager.Info("[INFO-Cluster] Leader changed. I'm the leader")
 		manager.cluster.localMember.SetLeader(true)
 	} else {
-		manager.logger.Info("[INFO-Cluster] Leader is set", "leader",
+		manager.Info("[INFO-Cluster] Leader is set", "leader",
 			manager.cluster.leader.NodeID)
 	}
 	
@@ -224,13 +224,13 @@ func (manager *Manager) onLeaderChanged(leader *Member) {
 }
 
 func (manager *Manager) onMemberChanged() {
-	manager.logger.Info("[INFO-Cluster] Members changed.", "members",
+	manager.Info("[INFO-Cluster] Members changed.", "members",
 		manager.cluster.GetAliveMemberIDs())
 	
 	common.PublishDaemonEvent(MemberChangedEvent{
-		IsLeader:     manager.cluster.localMember.IsLeader(),
+		IsLeader:       manager.cluster.localMember.IsLeader(),
 		AliveMemberIDs: manager.cluster.GetAliveMemberIDs(),
-		AliveMembers: manager.cluster.GetAliveMembers(),
+		AliveMembers:   manager.cluster.GetAliveMembers(),
 	})
 }
 
