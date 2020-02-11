@@ -30,24 +30,19 @@ func (manager *Manager) Start() {
 	var jobsChanged bool
 	
 	jobsEvtPath := tmevents.MakeTxEventPath(common.SpaceDaemon, PathJobs, "")
-	tmevents.SubscribeTxEvent(jobsEvtPath, "jobs", func(event tmevents.TxEvent) {
+	tmevents.SubscribeTxEvent(jobsEvtPath, "job-detectJobChanged", func(event tmevents.TxEvent) {
 		jobsChanged = true
 	})
 	
 	
-	tmevents.SubscribeBlockEvent(tmevents.CommitEventPath, "check-jobs-changed", func(event types.Event) {
+	tmevents.SubscribeBlockEvent(tmevents.CommitEventPath, "job-checkJobsChanged", func(event types.Event) {
 		if jobsChanged {
-			manager.Info("[JobManager] Jobs changed.")
-			jobIDs, err := manager.dao.GetAllJobIDs()
-			if err != nil {
-				manager.Error("[JobManager] Jobs changed", err)
-				return
-			}
+			commitEvent := event.(tmevents.CommitEvent)
 			
-			manager.Info("[JobManager] Jobs changed.", jobIDs)
+			manager.Info("[JobManager] Jobs changed.", "height",commitEvent.Height )
 			
 			common.PublishDaemonEvent(JobsChangedEvent{
-				JobIDs: jobIDs,
+				BlockHeight:commitEvent.Height,
 			})
 			
 			jobsChanged = false
@@ -57,7 +52,7 @@ func (manager *Manager) Start() {
 	
 	memJobsEvtPath := tmevents.MakeTxEventPath(common.SpaceDaemon, PathMemberJobs, manager.nodeID)
 	
-	tmevents.SubscribeTxEvent(memJobsEvtPath, "mem_jobs", func(event tmevents.TxEvent) {
+	tmevents.SubscribeTxEvent(memJobsEvtPath, "job-memJobsChanged", func(event tmevents.TxEvent) {
 		nodeID := string(event.Key)
 		
 		jobIDs, err := manager.dao.GetMemberJobIDs(nodeID)

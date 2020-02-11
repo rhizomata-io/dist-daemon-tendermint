@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	JobsChangedEventPath = types.EventPath("jobs-changed")
+	JobsChangedEventPath       = types.EventPath("jobs-changed")
 	MemberJobsChangedEventPath = types.EventPath("msm_jobs-changed")
 )
 
@@ -16,13 +16,12 @@ type MemberJobsChangedEvent struct {
 	JobIDs []string
 }
 
-
 func (event MemberJobsChangedEvent) Path() types.EventPath { return MemberJobsChangedEventPath }
 
 type JobsChangedEvent struct {
 	common.DaemonEvent
-	JobIDs []string
+	BlockHeight int64
+	//JobIDs []string
 }
 
 func (event JobsChangedEvent) Path() types.EventPath { return JobsChangedEventPath }
-

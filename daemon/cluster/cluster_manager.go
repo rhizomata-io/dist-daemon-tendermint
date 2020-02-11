@@ -60,7 +60,7 @@ func (manager *Manager) Start() {
 		panic(err)
 	}
 	
-	tmevents.SubscribeBlockEvent(tmevents.BeginBlockEventPath, "heartbeat", func(event types.Event) {
+	tmevents.SubscribeBlockEvent(tmevents.BeginBlockEventPath, "cluster-heartbeat", func(event types.Event) {
 		// fmt.Println("heartbeat ", event)
 		err := manager.dao.PutHeartbeat(manager.GetNodeID())
 		if err != nil {
@@ -68,7 +68,7 @@ func (manager *Manager) Start() {
 		}
 	})
 	
-	tmevents.SubscribeBlockEvent(tmevents.CommitEventPath, "checkMembers", func(event types.Event) {
+	tmevents.SubscribeBlockEvent(tmevents.CommitEventPath, "cluster-checkMembers", func(event types.Event) {
 		changed := false
 		err := manager.dao.GetHeartbeats(func(nodeid string, tm time.Time) {
 			c := manager.handleHeartbeat(nodeid, tm)

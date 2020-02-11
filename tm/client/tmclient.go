@@ -133,6 +133,10 @@ func (client *TMClient) GetObject(msg *types.ViewMsg, obj interface{}) (err erro
 		return err
 	}
 	
+	if len(data) == 0{
+		return types.NewNoDataError()
+	}
+	
 	err = client.UnmarshalObject(data, obj)
 	
 	if err != nil {

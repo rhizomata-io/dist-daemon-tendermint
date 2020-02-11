@@ -57,14 +57,14 @@ func onDaemonStarted(dm *daemon.Daemon) {
 	
 	dm.GetJobRepository().RemoveAllJobs()
 	
-	jobInfo1, _ := json.Marshal(`{"interval":"2s","greet":"hello 2s" }`)
-	dm.GetJobRepository().PutJobIfNotExist(job.New(hello.FactoryName, jobInfo1))
-	
-	jobInfo2, _ := json.Marshal(`{"interval":"1.5s","greet":"hello 1.5s" }`)
-	dm.GetJobRepository().PutJobIfNotExist(job.New(hello.FactoryName, jobInfo2))
-	
-	jobInfo3, _ := json.Marshal(`{"interval":"400ms","greet":"hello 400ms" }`)
-	dm.GetJobRepository().PutJobIfNotExist(job.New(hello.FactoryName, jobInfo3))
+	//jobInfo1, _ := json.Marshal(`{"interval":"2s","greet":"hello 2s" }`)
+	//dm.GetJobRepository().PutJobIfNotExist(job.New(hello.FactoryName, jobInfo1))
+	//
+	//jobInfo2, _ := json.Marshal(`{"interval":"1.5s","greet":"hello 1.5s" }`)
+	//dm.GetJobRepository().PutJobIfNotExist(job.New(hello.FactoryName, jobInfo2))
+	//
+	//jobInfo3, _ := json.Marshal(`{"interval":"400ms","greet":"hello 400ms" }`)
+	//dm.GetJobRepository().PutJobIfNotExist(job.New(hello.FactoryName, jobInfo3))
 	
 	jobInfo4, _ := json.Marshal(`{"interval":"3s","greet":"hi 3s" }`)
 	dm.GetJobRepository().PutJobIfNotExist(job.NewWithID(hello.FactoryName, "hi1", jobInfo4))
@@ -75,7 +75,6 @@ func onDaemonStarted(dm *daemon.Daemon) {
 	jobInfo6, _ := json.Marshal(`{"interval":"500ms","greet":"hi 500ms" }`)
 	dm.GetJobRepository().PutJobIfNotExist(job.NewWithID(hello.FactoryName, "hi3", jobInfo6))
 	
-	dm.GetJobRepository().GetJob("hi2")
-	
-	dm.GetJobRepository().GetAllJobs()
+	//dm.GetJobRepository().GetJob("hi2")
+	//dm.GetJobRepository().GetAllJobs()
 }

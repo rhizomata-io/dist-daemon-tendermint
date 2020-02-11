@@ -72,12 +72,16 @@ func (dm *Daemon) Start() {
 		dm.workerManager.RegisterWorkerFactory(&hello.Factory{})
 		
 		common.SubscribeDaemonEvent(cluster.MemberChangedEventPath,
-			"onMemberChanged",
+			"daemon-onMemberChanged",
 			dm.onMemberChanged)
 		
 		common.SubscribeDaemonEvent(job.MemberJobsChangedEventPath,
-			"onMemberJobsChanged",
+			"daemon-onMemberJobsChanged",
 			dm.onMemberJobsChanged)
+		
+		common.SubscribeDaemonEvent(job.JobsChangedEventPath,
+			"daemon-onJobsChanged",
+			dm.onJobsChanged)
 		
 		common.PublishDaemonEvent(StartedEvent{})
 	}()
@@ -151,4 +155,10 @@ func (dm *Daemon) onMemberJobsChanged(event types.Event) {
 		return
 	}
 	dm.workerManager.SetJobs(jobs)
+}
+
+func (dm *Daemon) onJobsChanged(event types.Event) {
+	jobsChangedEvent := event.(job.JobsChangedEvent)
+	dm.logger.Info(" - [Daemon] onJobsChanged :", "blockHeight", jobsChangedEvent.BlockHeight)
+	
 }

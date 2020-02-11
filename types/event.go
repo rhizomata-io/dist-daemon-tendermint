@@ -73,11 +73,12 @@ func (bus *EventBus) Publish(event Event) {
 	
 	eventPath := event.Path()
 	
+	fmt.Println("- EventBus Publish ", bus.scope, eventPath, len(bus.listeners))
 	for path, handlers := range bus.listeners {
-		// fmt.Println(" - EventBus Publish ", eventPath, "=", path, len(handlers))
 		if eventPath.HasPrefix(path) {
-			// fmt.Println("     - EventBus Publish * Match ", eventPath, "=", path )
-			for _, handler := range handlers {
+			fmt.Println("   # EventBus ", bus.scope , eventPath, "=", path )
+			for name, handler := range handlers {
+				fmt.Println("     - handler =", name)
 				go func() { handler(event) }()
 			}
 		}

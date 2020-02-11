@@ -172,8 +172,13 @@ func (dao *jobDao) GetAllJobs() (jobs map[string]Job, err error) {
 	err = dao.client.GetMany(msg, func(key []byte, value []byte) bool {
 		jobid := string(key)
 		job := Job{}
-		dao.client.UnmarshalObject(value, job)
-		jobs[jobid] = job
+		err := dao.client.UnmarshalObject(value, &job)
+		if err != nil {
+			dao.logger.Error("[JobDao] GetAllJobs ", err)
+		} else {
+			jobs[jobid] = job
+		}
+		
 		return true
 	})
 	
