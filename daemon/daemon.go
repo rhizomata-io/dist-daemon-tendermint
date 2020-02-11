@@ -71,6 +71,8 @@ func (dm *Daemon) Start() {
 		
 		dm.workerManager.RegisterWorkerFactory(&hello.Factory{})
 		
+		// common.StartDaemonEventBus()
+		
 		common.SubscribeDaemonEvent(cluster.MemberChangedEventPath,
 			"daemon-onMemberChanged",
 			dm.onMemberChanged)

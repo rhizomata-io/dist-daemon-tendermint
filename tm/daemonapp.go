@@ -28,6 +28,8 @@ func NewDaemonApplication(config *cfg.Config, logger log.Logger, spaces []string
 		dapp.registerSpace(name)
 	}
 	
+	// events.StartTMEventBus()
+	
 	return dapp
 }
 

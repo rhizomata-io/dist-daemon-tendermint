@@ -23,3 +23,8 @@ func SubscribeDaemonEvent(path types.EventPath, name string, handler types.Event
 func UnsubscribeDaemonEvent(path types.EventPath, name string) {
 	daemonEventBus.Unsubscribe(path, name)
 }
+
+// func StartDaemonEventBus() {
+// 	daemonEventBus.Start()
+// }
+

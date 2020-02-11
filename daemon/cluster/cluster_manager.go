@@ -68,7 +68,7 @@ func (manager *Manager) Start() {
 		}
 	})
 	
-	tmevents.SubscribeBlockEvent(tmevents.CommitEventPath, "cluster-checkMembers", func(event types.Event) {
+	tmevents.SubscribeBlockEvent(tmevents.EndBlockEventPath, "cluster-checkMembers", func(event types.Event) {
 		changed := false
 		err := manager.dao.GetHeartbeats(func(nodeid string, tm time.Time) {
 			c := manager.handleHeartbeat(nodeid, tm)

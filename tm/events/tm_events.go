@@ -20,6 +20,11 @@ var (
 	txEventBus    = types.RegisterEventBus(EventScopeTx)
 )
 
+// func StartTMEventBus() {
+// 	blockEventBus.Start()
+// 	txEventBus.Start()
+// }
+
 func PublishBlockEvent(event BlockEvent) {
 	blockEventBus.Publish(event)
 }

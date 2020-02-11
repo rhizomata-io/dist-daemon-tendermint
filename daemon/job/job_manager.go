@@ -35,14 +35,14 @@ func (manager *Manager) Start() {
 	})
 	
 	
-	tmevents.SubscribeBlockEvent(tmevents.CommitEventPath, "job-checkJobsChanged", func(event types.Event) {
+	tmevents.SubscribeBlockEvent(tmevents.EndBlockEventPath, "job-checkJobsChanged", func(event types.Event) {
 		if jobsChanged {
-			commitEvent := event.(tmevents.CommitEvent)
+			endBlockEvent := event.(tmevents.EndBlockEvent)
 			
-			manager.Info("[JobManager] Jobs changed.", "height",commitEvent.Height )
+			manager.Info("[JobManager] Jobs changed.", "height",endBlockEvent.Height )
 			
 			common.PublishDaemonEvent(JobsChangedEvent{
-				BlockHeight:commitEvent.Height,
+				BlockHeight:endBlockEvent.Height,
 			})
 			
 			jobsChanged = false
