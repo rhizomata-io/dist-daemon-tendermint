@@ -1,6 +1,8 @@
 package api
 
 import (
+	"encoding/json"
+	
 	"github.com/rhizomata-io/dist-daemon-tendermint/daemon"
 	"github.com/rhizomata-io/dist-daemon-tendermint/daemon/job"
 	
@@ -28,9 +30,32 @@ func (api *DaemonAPI) RelativePath() string {
 func (api *DaemonAPI) SetHandlers(group *gin.RouterGroup) {
 	group.POST("job/add", api.addJob)
 	group.DELETE("job", api.removeJob)
+	group.GET("jobs", api.getJobs)
 }
 
 
+
+func (api *DaemonAPI) getJobs(context *gin.Context) {
+	memberJobs, err := api.daemon.GetJobRepository().GetAllMemberJobIDs()
+	if err != nil {
+		context.Status(http.StatusBadRequest)
+		context.Writer.WriteString(err.Error())
+		context.Writer.Flush()
+		return
+	}
+	
+	bytes, err := json.Marshal(memberJobs)
+	
+	if err != nil {
+		context.Status(http.StatusBadRequest)
+		context.Writer.WriteString(err.Error())
+		context.Writer.Flush()
+		return
+	}
+	
+	context.Writer.Write(bytes)
+	context.Writer.Flush()
+}
 
 
 func (api *DaemonAPI) addJob(context *gin.Context) {
