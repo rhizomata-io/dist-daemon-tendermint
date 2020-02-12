@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -57,24 +56,20 @@ func onDaemonStarted(dm *daemon.Daemon) {
 	
 	dm.GetJobRepository().RemoveAllJobs()
 	
-	//jobInfo1, _ := json.Marshal(`{"interval":"2s","greet":"hello 2s" }`)
-	//dm.GetJobRepository().PutJobIfNotExist(job.New(hello.FactoryName, jobInfo1))
-	//
-	//jobInfo2, _ := json.Marshal(`{"interval":"1.5s","greet":"hello 1.5s" }`)
-	//dm.GetJobRepository().PutJobIfNotExist(job.New(hello.FactoryName, jobInfo2))
-	//
-	//jobInfo3, _ := json.Marshal(`{"interval":"400ms","greet":"hello 400ms" }`)
-	//dm.GetJobRepository().PutJobIfNotExist(job.New(hello.FactoryName, jobInfo3))
+	jobInfo1 := []byte(`{"interval":"0.2s","greet":"hello 0.2s" }`)
+	dm.GetJobRepository().PutJobIfNotExist(job.NewWithID(hello.FactoryName, "hi1",jobInfo1))
 	
-	jobInfo4, _ := json.Marshal(`{"interval":"3s","greet":"hi 3s" }`)
-	dm.GetJobRepository().PutJobIfNotExist(job.NewWithID(hello.FactoryName, "hi1", jobInfo4))
+	jobInfo2 := []byte(`{"interval":"1.5s","greet":"hello 1.5s" }`)
+	dm.GetJobRepository().PutJobIfNotExist(job.NewWithID(hello.FactoryName, "hi2",jobInfo2))
 	
-	jobInfo5, _ := json.Marshal(`{"interval":"1.7s","greet":"hi 1.7s" }`)
-	dm.GetJobRepository().PutJobIfNotExist(job.NewWithID(hello.FactoryName, "hi2", jobInfo5))
+	jobInfo3 := []byte(`{"interval":"100ms","greet":"hello 100ms" }`)
+	dm.GetJobRepository().PutJobIfNotExist(job.NewWithID(hello.FactoryName, "hi3", jobInfo3))
 	
-	jobInfo6, _ := json.Marshal(`{"interval":"500ms","greet":"hi 500ms" }`)
-	dm.GetJobRepository().PutJobIfNotExist(job.NewWithID(hello.FactoryName, "hi3", jobInfo6))
+	jobInfo4 := []byte(`{"interval":"0.8s","greet":"hi 0.8s" }`)
+	dm.GetJobRepository().PutJobIfNotExist(job.NewWithID(hello.FactoryName, "hi4", jobInfo4))
 	
-	//dm.GetJobRepository().GetJob("hi2")
-	//dm.GetJobRepository().GetAllJobs()
+	jobInfo5 := []byte(`{"interval":"150ms","greet":"hi 150ms" }`)
+	dm.GetJobRepository().PutJobIfNotExist(job.NewWithID(hello.FactoryName, "hi5", jobInfo5))
+	
+	dm.GetJobRepository().GetJob("hi2")
 }

@@ -44,7 +44,7 @@ func (dao *jobDao) GetMemberJobIDs(nodeid string) (jobIDs []string, err error) {
 	msg := types.NewViewMsgOne(common.SpaceDaemon, PathMemberJobs, nodeid)
 	
 	jobIDs = []string{}
-	err = dao.client.GetObject(msg, jobIDs)
+	err = dao.client.GetObject(msg, &jobIDs)
 	return jobIDs, err
 }
 

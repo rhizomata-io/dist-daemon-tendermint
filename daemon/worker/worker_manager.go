@@ -23,7 +23,7 @@ type Manager struct {
 // NewManager ..
 func NewManager(context common.Context) *Manager {
 	dao := NewRepository(context.GetConfig(), context, context.GetClient())
-	manager := Manager{Context: context, dao: dao}
+	manager := Manager{Context: context, dao: dao, logger:context}
 	manager.facReg = NewFactoryRegistry()
 	manager.workers = make(map[string]Worker)
 	return &manager
@@ -109,7 +109,7 @@ func (manager *Manager) deregisterWorker(jobID string) error {
 
 // SetJobs ...
 func (manager *Manager) SetJobs(jobs []job.Job) {
-	manager.logger.Info("[WorkerManager] Set Jobs:", len(jobs))
+	manager.logger.Info("[WorkerManager] Set Jobs:", "job_count", len(jobs))
 	
 	tempWorkers := make(map[string]Worker)
 	newWorkers := make(map[string]Worker)
@@ -129,7 +129,7 @@ func (manager *Manager) SetJobs(jobs []job.Job) {
 				continue
 			} else {
 				worker = worker2
-				manager.logger.Info("[WARN-WorkerMan] New Worker..", job.ID)
+				manager.logger.Info("[WARN-WorkerMan] New Worker ", "jonID", job.ID)
 			}
 		}
 		
@@ -138,7 +138,7 @@ func (manager *Manager) SetJobs(jobs []job.Job) {
 	// 제거된 worker 종료하기
 	for id, worker := range tempWorkers {
 		worker.Stop()
-		manager.logger.Info("[WARN-WorkerMan] Dispose Worker .....", id)
+		manager.logger.Info("[WARN-WorkerMan] Dispose Worker ", "jonID", id)
 	}
 	
 	manager.workers = newWorkers
@@ -146,11 +146,14 @@ func (manager *Manager) SetJobs(jobs []job.Job) {
 	for id, worker := range manager.workers {
 		if !worker.IsStarted() {
 			go func(id string, worker Worker) {
-				manager.logger.Info("[WARN-WorkerMan] New Worker Starting .....", id)
+				manager.logger.Info("[WARN-WorkerMan] New Worker Starting ", "jonID", id)
 				worker.Start()
 			}(id, worker)
 		} else {
-			manager.logger.Info("[WARN-WorkerMan] Remained Worker .....", id)
+			manager.logger.Info("[WARN-WorkerMan] Remained Worker ", "jonID", id)
 		}
 	}
 }
+
+
+

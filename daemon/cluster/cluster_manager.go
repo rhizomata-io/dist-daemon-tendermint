@@ -142,14 +142,14 @@ func (manager *Manager) checkLeader(memberChanged bool) {
 		manager.Error("Get Leader ", err)
 	}
 	
-	manager.Info("[INFO-Cluster] Leader is", leaderID)
+	manager.Info("[INFO-Cluster] Leader is", "leaderID", leaderID)
 	
 	if oldLeader != nil {
 		if oldLeader.NodeID == leaderID {
 			if oldLeader.IsAlive() {
 				return
 			}
-			manager.Info("[INFO-Cluster] Old leader is dead. ", oldLeader.NodeID)
+			manager.Info("[INFO-Cluster] Old leader is dead. ", "old_node_ID", oldLeader.NodeID)
 			oldLeader.SetLeader(false)
 			manager.cluster.leader = nil
 		} else {
@@ -163,10 +163,10 @@ func (manager *Manager) checkLeader(memberChanged bool) {
 	if len(leaderID) > 0 {
 		leader = manager.cluster.GetMember(leaderID)
 		if leader == nil {
-			manager.Info("[INFO-Cluster] Old leader is missing. ", leaderID)
+			manager.Info("[INFO-Cluster] Old leader is missing. ", "leaderID", leaderID)
 			leader = manager.electLeader()
 		} else if !leader.IsAlive() {
-			manager.Info("[INFO-Cluster] Old leader is dead. ", leaderID)
+			manager.Info("[INFO-Cluster] Old leader is dead. ", "leaderID", leaderID)
 			leader.SetLeader(false)
 			leader = manager.electLeader()
 		}

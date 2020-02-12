@@ -9,7 +9,10 @@ import (
 	"github.com/rhizomata-io/dist-daemon-tendermint/daemon/worker"
 )
 
-const (FactoryName = "hello-worker")
+const (
+	FactoryName = "hello-worker"
+)
+
 type Factory struct {
 }
 
@@ -20,29 +23,35 @@ func (fac *Factory) Name() string { return FactoryName }
 func (fac *Factory) NewWorker(helper *worker.Helper) (worker.Worker, error) {
 	worker := &Worker{id: helper.ID(), helper: helper}
 	
+	infoBytes := worker.helper.Job().Data
+	//infoBytes = []byte(`{"Interval":"300ms","Greet":"hi 3s" }`)
+	
 	jobInfo := JobInfo{}
-	err := json.Unmarshal(worker.helper.Job().Data, &jobInfo)
+	err := json.Unmarshal(infoBytes, &jobInfo)
 	
 	if err != nil {
-		return nil, errors.New("cannot create hello worker " + err.Error())
+		err = errors.New("cannot create hello worker(unmarshal json) " + err.Error())
+		helper.Error("[ERROR] Create Hello Worker(unmarshal json)", "data", string(infoBytes))
+		return nil, err
 	}
+	worker.jobInfo = jobInfo
 	
 	interval, err := time.ParseDuration(worker.jobInfo.Interval)
-	
 	if err != nil {
-		return nil, errors.New("cannot create hello worker " + err.Error())
+		err = errors.New("cannot create hello worker(ParseDuration) " + err.Error())
+		return nil, err
 	}
 	
-	jobInfo.interval = interval
+	jobInfo.intervalDur = interval
 	worker.jobInfo = jobInfo
 	
 	return worker, nil
 }
 
 type JobInfo struct {
-	Interval string `json:"interval"`
-	Greet    string `json:"greet"`
-	interval time.Duration
+	Interval    string `json:"interval"`
+	Greet       string `json:"greet"`
+	intervalDur time.Duration
 }
 
 type Worker struct {
@@ -61,10 +70,9 @@ func (worker *Worker) Start() error {
 	fmt.Println(" - Worker Started ", worker.id)
 	worker.started = true
 	
-	
 	for worker.started {
-		fmt.Printf( " - Worker[%s] worked. %s \n", worker.id, worker.jobInfo.Greet )
-		time.Sleep(worker.jobInfo.interval)
+		fmt.Printf(" - Worker[%s] worked. %s \n", worker.id, worker.jobInfo.Greet)
+		time.Sleep(worker.jobInfo.intervalDur)
 	}
 	
 	fmt.Println(" - Worker Stopped ", worker.id)

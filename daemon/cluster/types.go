@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"fmt"
+	"github.com/rhizomata-io/dist-daemon-tendermint/daemon/common"
 	"sort"
 	"strings"
 	"time"
@@ -34,6 +35,8 @@ type Cluster struct {
 	localMember *Member
 	leader      *Member
 }
+
+var _ common.ClusterState = (*Cluster)(nil)
 
 func newCluster(name string) *Cluster {
 	cluster := Cluster{name: name}
@@ -118,6 +121,12 @@ func (cluster *Cluster) Leader() *Member {
 func (cluster *Cluster) Local() *Member {
 	return cluster.localMember
 }
+
+// Local get localMember
+func (cluster *Cluster) IsLeader() bool {
+	return cluster.localMember.IsLeader()
+}
+
 
 // Member member info
 type Member struct {

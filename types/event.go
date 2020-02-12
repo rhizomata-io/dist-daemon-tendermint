@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"time"
 )
 
 type EventScope string
@@ -56,10 +55,8 @@ func RegisterEventBus(scope EventScope) *EventBus {
 
 func (bus *EventBus) start() {
 	if !bus.started {
-		fmt.Printf(" - EventBus[%s] starting...\n", bus.scope)
 		go bus.processor.start()
 		bus.started = true
-		fmt.Printf(" - EventBus[%s] started.\n", bus.scope)
 	}
 }
 
@@ -143,8 +140,7 @@ type Queue struct {
 	sync.Mutex
 	scope     EventScope
 	innerList *list.List
-	lock      chan bool
-	waiting   int64
+	cond      *sync.Cond
 }
 
 type Command struct {
@@ -155,8 +151,9 @@ type Command struct {
 
 // NewQueue ...
 func newQueue(scope EventScope) *Queue {
-	queue := Queue{scope: scope, innerList: list.New(), lock: make(chan bool)}
-	return &queue
+	queue := &Queue{scope: scope, innerList: list.New()}
+	queue.cond = sync.NewCond(queue)
+	return queue
 }
 
 // Size ..
@@ -169,34 +166,23 @@ func (queue *Queue) Push(value *Command) {
 	queue.Lock()
 	defer queue.Unlock()
 	queue.innerList.PushBack(value)
-	
-	// fmt.Println("Queue Push A ", queue.waiting, queue.scope)
-	// if queue.waiting > 0 {
-	// 	fmt.Println("Queue Push lock false ", queue.waiting, queue.scope)
-	// 	queue.lock <- false
-	// }
-	// fmt.Println("Queue Push B ", queue.waiting, queue.scope)
+	queue.cond.Broadcast()
 }
 
 // Pop ..
 func (queue *Queue) Pop() (value *Command) {
-	value = queue._pop()
-	// fmt.Println("Queue _pop", queue.scope)
-	// for ; value == nil; value = queue._pop() {
-	// 	queue.waiting++
-	// 	fmt.Println("Queue _pop wait...", queue.waiting, queue.scope)
-	// 	<-queue.lock
-	// 	queue.waiting--
-	// }
+	queue.Lock()
+	defer queue.Unlock()
+	
+	for value = queue._pop() ; value == nil; value = queue._pop() {
+		queue.cond.Wait()
+	}
 	
 	return value
 }
 
 // Pop ..
 func (queue *Queue) _pop() (value *Command) {
-	queue.Lock()
-	defer queue.Unlock()
-	
 	el := queue.innerList.Front()
 	if el != nil {
 		value = el.Value.(*Command)
@@ -220,11 +206,6 @@ func (proc *CommandProcessor) start() {
 func (proc *CommandProcessor) process() {
 	for proc.running {
 		command := proc.queue.Pop()
-		if command != nil {
-			command.handler(command.event)
-		} else {
-			time.Sleep(100 * time.Millisecond)
-		}
-		
+		command.handler(command.event)
 	}
 }

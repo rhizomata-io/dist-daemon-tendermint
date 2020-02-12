@@ -31,25 +31,27 @@ type Daemon struct {
 }
 
 func NewDaemon(tmCfg *cfg.Config, logger log.Logger, tmNode *node.Node, config common.DaemonConfig) (dm *Daemon) {
-	ctx := common.NewContext(tmCfg , logger , tmNode , config)
+	ctx := common.NewContext(tmCfg, logger, tmNode, config)
 	dm = &Daemon{
 		context: ctx,
-		tmCfg: tmCfg,
-		logger: logger,
-		tmNode: tmNode,
+		tmCfg:   tmCfg,
+		logger:  logger,
+		tmNode:  tmNode,
 	}
 	dm.client = ctx.GetClient()
 	dm.id = string(dm.tmNode.NodeInfo().ID())
 	
 	dm.clusterManager = cluster.NewManager(ctx)
+	ctx.SetClusterState(dm.clusterManager.GetCluster())
 	dm.jobManager = job.NewManager(ctx)
 	dm.workerManager = worker.NewManager(ctx)
 	return dm
 }
 
-func (dm *Daemon) SetJobOrganizer(organizer   job.Organizer){
+func (dm *Daemon) SetJobOrganizer(organizer job.Organizer) {
 	dm.jobOrganizer = organizer
 }
+
 // RegisterWorkerFactory register worker.Factory
 func (dm *Daemon) RegisterWorkerFactory(factory worker.Factory) {
 	dm.workerManager.RegisterWorkerFactory(factory)
@@ -66,7 +68,7 @@ func (dm *Daemon) Start() {
 		dm.workerManager.Start()
 		
 		if dm.jobOrganizer == nil {
-			dm.jobOrganizer = job.NewSimpleOrganizer()
+			dm.jobOrganizer = job.NewSimpleOrganizer(dm.logger)
 		}
 		
 		dm.workerManager.RegisterWorkerFactory(&hello.Factory{})
@@ -86,6 +88,8 @@ func (dm *Daemon) Start() {
 			dm.onJobsChanged)
 		
 		common.PublishDaemonEvent(StartedEvent{})
+		
+		dm.checkJobsAndAllocate()
 	}()
 }
 
@@ -117,6 +121,45 @@ func (dm *Daemon) onMemberChanged(event types.Event) {
 	}
 }
 
+// member's jobs changed event handler
+func (dm *Daemon) onMemberJobsChanged(event types.Event) {
+	dm.logger.Debug("-[Daemon] onMemberJobsChanged :", event)
+	
+	memberJobsChangedEvent := event.(job.MemberJobsChangedEvent)
+	
+	if memberJobsChangedEvent.NodeID != dm.ID() {
+		return
+	}
+	
+	dm.logger.Info("[Daemon] member's jobs changed", "nodeID", memberJobsChangedEvent.NodeID,
+		"jobs", memberJobsChangedEvent.JobIDs)
+	
+	dm.checkJobsAndAllocate()
+}
+
+func (dm *Daemon) checkJobsAndAllocate() {
+	jobs, err := dm.jobManager.GetRepository().GetMemberJobs(dm.ID())
+	
+	if err != nil {
+		dm.logger.Error(fmt.Sprintf("[Daemon] cannot get %s's jobs", dm.ID()))
+		return
+	}
+	
+	dm.workerManager.SetJobs(jobs)
+}
+
+func (dm *Daemon) onJobsChanged(event types.Event) {
+	jobsChangedEvent := event.(job.JobsChangedEvent)
+	if dm.jobOrganizer == nil {
+		dm.logger.Info("[Daemon] JobOrganizer is not set.")
+	}
+	if dm.IsLeaderNode() {
+		dm.logger.Info(" - [Daemon] onJobsChanged :", "blockHeight", jobsChangedEvent.BlockHeight)
+		aliveMembers := dm.clusterManager.GetCluster().GetAliveMemberIDs()
+		dm.distributeJobs(aliveMembers)
+	}
+}
+
 func (dm *Daemon) distributeJobs(aliveMembers []string) {
 	allJobs, err := dm.jobManager.GetRepository().GetAllJobs()
 	if err != nil {
@@ -128,39 +171,19 @@ func (dm *Daemon) distributeJobs(aliveMembers []string) {
 	}
 	membJobMap, err := dm.jobManager.GetRepository().GetAllMemberJobIDs()
 	if err != nil {
-		dm.logger.Error("[Daemon] distributeJobs - GetAllMemberJobIDs ", err)
-		return
+		if !types.IsNoDataError(err) {
+			dm.logger.Error("[Daemon] distributeJobs - GetAllMemberJobIDs ", err)
+			return
+		}
 	}
 	
 	newMembJobs, err := dm.jobOrganizer.Distribute(allJobs, aliveMembers, membJobMap)
 	
-	dm.logger.Info("[Daemon] distributeJobs : ", newMembJobs)
-}
-
-// member's jobs changed event handler
-func (dm *Daemon) onMemberJobsChanged(event types.Event) {
-	dm.logger.Debug(" - [Daemon] onMemberJobsChanged :", event)
+	dm.logger.Info("[Daemon] distributeJobs : ", "new members' jobs", newMembJobs)
 	
-	memberJobsChangedEvent := event.(job.MemberJobsChangedEvent)
-	
-	if memberJobsChangedEvent.NodeID != dm.ID() {
-		return
+	for nodeid, jobs := range newMembJobs {
+		dm.jobManager.GetRepository().PutMemberJobIDs(nodeid, jobs)
+		dm.logger.Info(fmt.Sprintf("[Daemon] Put Member(%s) jobs. %s", nodeid, jobs))
 	}
-	
-	dm.logger.Info("[Daemon] member's jobs changed", "nodeID", memberJobsChangedEvent.NodeID,
-		"jobs", memberJobsChangedEvent.JobIDs)
-	
-	jobs, err := dm.jobManager.GetRepository().GetMemberJobs(dm.ID())
-	
-	if err != nil {
-		dm.logger.Error(fmt.Sprintf("[Daemon] cannot get %s's jobs", dm.ID()))
-		return
-	}
-	dm.workerManager.SetJobs(jobs)
-}
-
-func (dm *Daemon) onJobsChanged(event types.Event) {
-	jobsChangedEvent := event.(job.JobsChangedEvent)
-	dm.logger.Info(" - [Daemon] onJobsChanged :", "blockHeight", jobsChangedEvent.BlockHeight)
 	
 }

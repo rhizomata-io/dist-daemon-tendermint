@@ -1,8 +1,8 @@
 package job
 
 import (
-	"log"
 	"fmt"
+	"github.com/tendermint/tendermint/libs/log"
 )
 
 // Organizer : Job Organizer distributes jobs to members
@@ -11,17 +11,18 @@ type Organizer interface {
 }
 
 type simpleOrganizer struct {
+	logger log.Logger
 }
 
 // NewSimpleOrganizer ..
-func NewSimpleOrganizer() Organizer {
-	return &simpleOrganizer{}
+func NewSimpleOrganizer(logger log.Logger) Organizer {
+	return &simpleOrganizer{logger: logger}
 }
 
 // Distribute ..
 func (organizer *simpleOrganizer) Distribute(
 	allJobs map[string]Job, aliveMembers []string, membJobMap map[string][]string) (membJobs map[string][]string, err error) {
-	fmt.Println("======== jobOrganizer::Distribute +++++++++")
+	organizer.logger.Info("[SimpleJobOrganizer] Distribute ")
 	
 	// 1) alive하지 않은 멤버의 job 회수
 	// 2) member job 중 삭제된 job 제거
@@ -45,14 +46,14 @@ func (organizer *simpleOrganizer) Distribute(
 				if _, ok := allJobs[job]; ok {
 					newMembJobs = append(newMembJobs, job)
 				} else {
-					log.Println("[INFO-JobOrg] remove member job ", job)
+					fmt.Println("[INFO-JobOrg] remove member job ", job)
 				}
 			}
 			membJobMap[membID] = newMembJobs
 		}
 	}
 	
-	log.Println("[INFO-SimpleJobOrganizer] all jobs:", len(allJobs), ", unallocated jobs:", len(unallocatedJobs))
+	organizer.logger.Info("[INFO-SimpleJobOrganizer] ", "all jobs:", len(allJobs), ", unallocated jobs:", len(unallocatedJobs))
 	
 	avg := len(allJobs) / len(aliveMembers)
 	if len(allJobs)%len(aliveMembers) > 0 {

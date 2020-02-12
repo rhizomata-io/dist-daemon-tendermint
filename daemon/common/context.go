@@ -9,6 +9,11 @@ import (
 	"time"
 )
 
+type ClusterState interface {
+	IsLeader() bool
+	GetAliveMemberIDs() []string
+}
+
 type Context interface {
 	log.Logger
 	LastBlockTime() time.Time
@@ -17,32 +22,42 @@ type Context interface {
 	GetClient() types.Client
 	GetTMConfig() *cfg.Config
 	GetConfig() DaemonConfig
-	//Info(msg string, keyvals ...interface{})
-	//Debug(msg string, keyvals ...interface{})
-	//Error(msg string, keyvals ...interface{})
+	GetClusterState() ClusterState
+	SetClusterState(state ClusterState)
 }
 
 type DefaultContext struct {
-	tmNode *node.Node
-	tmCfg  *cfg.Config
-	config DaemonConfig
-	logger log.Logger
-	client types.Client
+	tmNode       *node.Node
+	tmCfg        *cfg.Config
+	config       DaemonConfig
+	logger       log.Logger
+	client       types.Client
+	clusterState ClusterState
 }
-
 
 func NewContext(tmCfg *cfg.Config, logger log.Logger, tmNode *node.Node, config DaemonConfig) Context {
 	client := client.NewClient(tmCfg, logger, types.BasicCdc)
 	return &DefaultContext{
-		tmNode: tmNode,
-		tmCfg:  tmCfg,
-		config: config,
-		logger: logger,
-		client: client,
+		tmNode:       tmNode,
+		tmCfg:        tmCfg,
+		config:       config,
+		logger:       logger,
+		client:       client,
 	}
 }
 
 var _ Context = (*DefaultContext)(nil)
+
+func (ctx *DefaultContext) GetClusterState() ClusterState {
+	return ctx.clusterState
+}
+
+
+func (ctx *DefaultContext) SetClusterState(state ClusterState)  {
+	ctx.clusterState = state
+}
+
+
 
 func (ctx *DefaultContext) LastBlockTime() time.Time {
 	return ctx.tmNode.ConsensusState().GetState().LastBlockTime
