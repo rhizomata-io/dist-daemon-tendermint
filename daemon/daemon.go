@@ -24,6 +24,7 @@ type Daemon struct {
 	logger         log.Logger
 	client         types.Client
 	context        common.Context
+	config         common.DaemonConfig
 	clusterManager *cluster.Manager
 	jobManager     *job.Manager
 	workerManager  *worker.Manager
@@ -34,6 +35,7 @@ func NewDaemon(tmCfg *cfg.Config, logger log.Logger, tmNode *node.Node, config c
 	ctx := common.NewContext(tmCfg, logger, tmNode, config)
 	dm = &Daemon{
 		context: ctx,
+		config: config,
 		tmCfg:   tmCfg,
 		logger:  logger,
 		tmNode:  tmNode,
@@ -46,6 +48,18 @@ func NewDaemon(tmCfg *cfg.Config, logger log.Logger, tmNode *node.Node, config c
 	dm.jobManager = job.NewManager(ctx)
 	dm.workerManager = worker.NewManager(ctx)
 	return dm
+}
+
+func (dm *Daemon) GetTMConfig() cfg.Config {
+	return *dm.tmCfg
+}
+
+func (dm *Daemon) GetDaemonConfig() common.DaemonConfig {
+	return dm.config
+}
+
+func (dm *Daemon) GetContext() common.Context {
+	return dm.context
 }
 
 func (dm *Daemon) SetJobOrganizer(organizer job.Organizer) {

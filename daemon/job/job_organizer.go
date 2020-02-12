@@ -104,7 +104,6 @@ func (organizer *simpleOrganizer) Distribute(
 			membJobs = append(membJobs, slice...)
 			newMembJobsMap[membID] = membJobs
 		}
-		// fmt.Println("***** len(unallocatedJobIDs)=", len(unallocatedJobIDs))
 		// fmt.Println("***** len(membJobs)=", len(membJobs))
 	}
 	
@@ -113,6 +112,7 @@ func (organizer *simpleOrganizer) Distribute(
 		if newMembJobsMap[k] == nil {
 			newMembJobsMap[k] = []string{}
 		}
+		organizer.logger.Info("[INFO-SimpleJobOrganizer] Job allocated to", "nodeID", k, "jobs", newMembJobsMap[k])
 	}
 	
 	return newMembJobsMap, nil

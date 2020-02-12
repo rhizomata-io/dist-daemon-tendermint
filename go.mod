@@ -3,6 +3,7 @@ module github.com/rhizomata-io/dist-daemon-tendermint
 go 1.13
 
 require (
+	github.com/gin-gonic/gin v1.5.0
 	github.com/go-kit/kit v0.9.0
 	github.com/google/uuid v1.1.1
 	github.com/pkg/errors v0.9.1

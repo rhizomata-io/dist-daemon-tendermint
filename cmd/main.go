@@ -51,10 +51,11 @@ func main() {
 }
 
 func onDaemonStarted(dm *daemon.Daemon) {
+	
 	time.Sleep(4 * time.Second)
 	fmt.Println("\n------------- Sample STARTED -------------\n")
 	
-	dm.GetJobRepository().RemoveAllJobs()
+	//dm.GetJobRepository().RemoveAllJobs()
 	
 	jobInfo1 := []byte(`{"interval":"0.2s","greet":"hello 0.2s" }`)
 	dm.GetJobRepository().PutJobIfNotExist(job.NewWithID(hello.FactoryName, "hi1",jobInfo1))

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
+	"github.com/rhizomata-io/dist-daemon-tendermint/api"
 	"io"
 	"os"
 	
@@ -99,6 +100,7 @@ func AddNodeFlags(cmd *cobra.Command) {
 // These are exposed for convenience of commands embedding a tendermint node
 func AddDaemonFlags(cmd *cobra.Command) {
 	cmd.Flags().Uint("daemon.alive_threshold",2,"Alive Threshold Seconds")
+	cmd.Flags().String("daemon.api_addr","0.0.0.0:7777","API Service ip:port")
 }
 
 // NewRunNodeCmd returns the command that allows the CLI to start a node.
@@ -145,6 +147,10 @@ func NewStartCmd(nodeProvider nm.Provider, daemonProvider daemon.Provider) *cobr
 			
 			dm := daemonProvider(config, logger, n, daemonConfig)
 			dm.Start()
+			
+			addr, err := cmd.Flags().GetString("daemon.api_addr")
+			apiServer := api.NewServer(dm)
+			apiServer.Start(addr)
 			// Run forever.
 			select {}
 		},

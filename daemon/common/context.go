@@ -38,11 +38,11 @@ type DefaultContext struct {
 func NewContext(tmCfg *cfg.Config, logger log.Logger, tmNode *node.Node, config DaemonConfig) Context {
 	client := client.NewClient(tmCfg, logger, types.BasicCdc)
 	return &DefaultContext{
-		tmNode:       tmNode,
-		tmCfg:        tmCfg,
-		config:       config,
-		logger:       logger,
-		client:       client,
+		tmNode: tmNode,
+		tmCfg:  tmCfg,
+		config: config,
+		logger: logger,
+		client: client,
 	}
 }
 
@@ -52,12 +52,9 @@ func (ctx *DefaultContext) GetClusterState() ClusterState {
 	return ctx.clusterState
 }
 
-
-func (ctx *DefaultContext) SetClusterState(state ClusterState)  {
+func (ctx *DefaultContext) SetClusterState(state ClusterState) {
 	ctx.clusterState = state
 }
-
-
 
 func (ctx *DefaultContext) LastBlockTime() time.Time {
 	return ctx.tmNode.ConsensusState().GetState().LastBlockTime
