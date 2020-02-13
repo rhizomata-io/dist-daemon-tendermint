@@ -28,11 +28,64 @@ func (api *DaemonAPI) RelativePath() string {
 }
 
 func (api *DaemonAPI) SetHandlers(group *gin.RouterGroup) {
-	group.POST("job/add", api.addJob)
-	group.DELETE("job", api.removeJob)
+	group.GET("info/cluster", api.getInfoCluster)
+	group.GET("info/node", api.getInfoNode)
+	group.GET("info/config", api.getInfoConfig)
+	
 	group.GET("jobs", api.getJobs)
+	group.POST("job/add/factory/:factory/jobid/:jobid", api.addJob)
+	group.DELETE("job/:jobid", api.removeJob)
 }
 
+
+func (api *DaemonAPI) getInfoConfig(context *gin.Context) {
+	config := api.daemon.GetDaemonConfig()
+	
+	bytes, err := json.Marshal(config)
+	
+	if err != nil {
+		context.Status(http.StatusBadRequest)
+		context.Writer.WriteString(err.Error())
+		context.Writer.Flush()
+		return
+	}
+	
+	context.Writer.Write(bytes)
+	context.Writer.Flush()
+}
+
+func (api *DaemonAPI) getInfoNode(context *gin.Context) {
+	config := api.daemon.GetTMConfig()
+	
+	bytes, err := json.Marshal(config)
+	
+	if err != nil {
+		context.Status(http.StatusBadRequest)
+		context.Writer.WriteString(err.Error())
+		context.Writer.Flush()
+		return
+	}
+	
+	context.Writer.Write(bytes)
+	context.Writer.Flush()
+}
+
+
+func (api *DaemonAPI) getInfoCluster(context *gin.Context) {
+	cluster := api.daemon.GetCluster()
+	
+	bytes, err := json.Marshal(cluster)
+	
+	if err != nil {
+		context.Status(http.StatusBadRequest)
+		context.Writer.WriteString(err.Error())
+		context.Writer.Flush()
+		return
+	}
+	
+	context.Writer.Write(bytes)
+	context.Writer.Flush()
+}
 
 
 func (api *DaemonAPI) getJobs(context *gin.Context) {

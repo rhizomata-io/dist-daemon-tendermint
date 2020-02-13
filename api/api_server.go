@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var VERSION = "1.0"
+var VERSION = "v1"
 
 type API interface {
 	RelativePath() string
@@ -25,9 +25,6 @@ func NewServer(dm *daemon.Daemon) (server *Server) {
 	server = new(Server)
 	server.err = make(chan error)
 	server.router = gin.Default()
-	
-	tmapi := NewTMAPI(dm)
-	server.AddAPI(tmapi)
 	
 	dmapi := NewDaemonAPI(dm)
 	server.AddAPI(dmapi)
