@@ -154,7 +154,7 @@ func (dm *Daemon) onMemberJobsChanged(event types.Event) {
 func (dm *Daemon) checkJobsAndAllocate() {
 	jobs, err := dm.jobManager.GetRepository().GetMemberJobs(dm.ID())
 	
-	if err != nil {
+	if err != nil  && !types.IsNoDataError(err) {
 		dm.logger.Error(fmt.Sprintf("[Daemon] cannot get %s's jobs", dm.ID()))
 		return
 	}
@@ -176,19 +176,14 @@ func (dm *Daemon) onJobsChanged(event types.Event) {
 
 func (dm *Daemon) distributeJobs(aliveMembers []string) {
 	allJobs, err := dm.jobManager.GetRepository().GetAllJobs()
-	if err != nil {
-		if !types.IsNoDataError(err) {
-			dm.logger.Error("[Daemon] distributeJobs - GetAllJobs ", err)
-		}
-		
+	if err != nil && !types.IsNoDataError(err){
+		dm.logger.Error("[Daemon] distributeJobs - GetAllJobs ", err)
 		return
 	}
 	membJobMap, err := dm.jobManager.GetRepository().GetAllMemberJobIDs()
-	if err != nil {
-		if !types.IsNoDataError(err) {
-			dm.logger.Error("[Daemon] distributeJobs - GetAllMemberJobIDs ", err)
-			return
-		}
+	if err != nil && !types.IsNoDataError(err) {
+		dm.logger.Error("[Daemon] distributeJobs - GetAllMemberJobIDs ", err)
+		return
 	}
 	
 	newMembJobs, err := dm.jobOrganizer.Distribute(allJobs, aliveMembers, membJobMap)

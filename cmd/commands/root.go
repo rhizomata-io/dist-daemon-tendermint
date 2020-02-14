@@ -3,15 +3,15 @@ package commands
 import (
 	"fmt"
 	"os"
-
+	
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-
+	
+	dmlog "github.com/rhizomata-io/dist-daemon-tendermint/tm/log"
 	cfg "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/libs/cli"
 	tmflags "github.com/tendermint/tendermint/libs/cli/flags"
 	"github.com/tendermint/tendermint/libs/log"
-	dmlog "github.com/rhizomata-io/dist-daemon-tendermint/tm/log"
 )
 
 var (
@@ -68,4 +68,16 @@ var RootCmd = &cobra.Command{
 		logger = logger.With("module", "main")
 		return nil
 	},
+}
+
+func InitRootCommand() *cobra.Command {
+	rootCmd := RootCmd
+	rootCmd.AddCommand(
+		NewInitCmd(),
+		ResetAllCmd,
+		ResetPrivValidatorCmd,
+		ShowValidatorCmd,
+		ShowNodeIDCmd,
+		VersionCmd,
+	)
 }

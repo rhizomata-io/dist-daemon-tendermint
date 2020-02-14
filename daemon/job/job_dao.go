@@ -51,7 +51,7 @@ func (dao *jobDao) GetMemberJobIDs(nodeid string) (jobIDs []string, err error) {
 // GetMemberJobs ..
 func (dao *jobDao) GetMemberJobs(membID string) (jobs []Job, err error) {
 	jobIDs, err := dao.GetMemberJobIDs(membID)
-	if err != nil {
+	if err != nil && !types.IsNoDataError(err) {
 		dao.logger.Error("[ERROR] Cannot retrieve member jobs", err)
 		return []Job{}, err
 	}

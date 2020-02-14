@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"github.com/rhizomata-io/dist-daemon-tendermint/api"
+	"github.com/rhizomata-io/dist-daemon-tendermint/tm"
 	"io"
 	"os"
 	
@@ -105,20 +106,20 @@ func AddDaemonFlags(cmd *cobra.Command) {
 
 // NewRunNodeCmd returns the command that allows the CLI to start a node.
 // It can be used with a custom PrivValidator and in-process ABCI application.
-func NewStartCmd(nodeProvider nm.Provider, daemonProvider daemon.Provider) *cobra.Command {
+func NewStartCmd(nodeProvider tm.Provider, daemonProvider daemon.Provider) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start",
 		Short: "Run Dist-Daemon tendermint node",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			n, err := nodeProvider(config, logger)
+			tmNode, dapp, err := nodeProvider(config, logger)
 			if err != nil {
 				return fmt.Errorf("failed to create node: %v", err)
 			}
 			
 			// Stop upon receiving SIGTERM or CTRL-C.
 			tmos.TrapSignal(logger, func() {
-				if n.IsRunning() {
-					n.Stop()
+				if tmNode.IsRunning() {
+					tmNode.Stop()
 				}
 			})
 			
@@ -126,10 +127,10 @@ func NewStartCmd(nodeProvider nm.Provider, daemonProvider daemon.Provider) *cobr
 				return err
 			}
 			
-			if err := n.Start(); err != nil {
+			if err := tmNode.Start(); err != nil {
 				return fmt.Errorf("failed to start node: %v", err)
 			}
-			logger.Info("Started node", "nodeInfo", n.Switch().NodeInfo())
+			logger.Info("Started node", "nodeInfo", tmNode.Switch().NodeInfo())
 			
 			
 			threshold, err := cmd.Flags().GetUint("daemon.alive_threshold")
@@ -140,12 +141,12 @@ func NewStartCmd(nodeProvider nm.Provider, daemonProvider daemon.Provider) *cobr
 			
 			daemonConfig := dmcfg.DaemonConfig{
 				ChainID:               config.ChainID(),
-				NodeID:                string(n.NodeInfo().ID()),
+				NodeID:                string(tmNode.NodeInfo().ID()),
 				NodeName:              config.Moniker,
 				AliveThresholdSeconds: threshold,
 			}
 			
-			dm := daemonProvider(config, logger, n, daemonConfig)
+			dm := daemonProvider(config, logger, tmNode, daemonConfig)
 			dm.Start()
 			
 			addr, err := cmd.Flags().GetString("daemon.api_addr")

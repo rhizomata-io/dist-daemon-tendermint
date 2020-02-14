@@ -18,15 +18,7 @@ const (
 )
 
 func main() {
-	rootCmd := cmd.RootCmd
-	rootCmd.AddCommand(
-		cmd.NewInitCmd(),
-		cmd.ResetAllCmd,
-		cmd.ResetPrivValidatorCmd,
-		cmd.ShowValidatorCmd,
-		cmd.ShowNodeIDCmd,
-		cmd.VersionCmd,
-	)
+	rootCmd := cmd.InitRootCommand()
 	
 	spaces := []string{common.SpaceDaemon, common.SpaceDaemonData}
 	

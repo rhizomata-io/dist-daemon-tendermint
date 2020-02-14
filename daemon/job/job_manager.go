@@ -56,7 +56,7 @@ func (manager *Manager) Start() {
 		nodeID := string(event.Key)
 		
 		jobIDs, err := manager.dao.GetMemberJobIDs(nodeID)
-		if err != nil {
+		if err != nil  && !types.IsNoDataError(err){
 			manager.Error("[JobManager GetAllJobIDs", err)
 		}
 		common.PublishDaemonEvent(MemberJobsChangedEvent{
