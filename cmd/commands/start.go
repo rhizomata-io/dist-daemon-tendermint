@@ -146,7 +146,7 @@ func NewStartCmd(nodeProvider tm.Provider, daemonProvider daemon.Provider) *cobr
 				AliveThresholdSeconds: threshold,
 			}
 			
-			dm := daemonProvider(config, logger, tmNode, daemonConfig)
+			dm := daemonProvider(config, logger, tmNode, dapp, daemonConfig)
 			dm.Start()
 			
 			addr, err := cmd.Flags().GetString("daemon.api_addr")
