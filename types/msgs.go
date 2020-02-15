@@ -1,5 +1,9 @@
 package types
 
+import (
+	"time"
+)
+
 type ViewType uint8
 type TxType uint8
 
@@ -43,11 +47,12 @@ func TxTypeString(typ TxType) string {
 // )
 
 type TxMsg struct {
-	Type  TxType
-	Space string
-	Path  string
-	Key   []byte
-	Data  []byte
+	Type   TxType
+	Space  string
+	Path   string
+	Key    []byte
+	Data   []byte
+	TxHash int64
 }
 
 func (msg *TxMsg) GetEventKey() string {
@@ -56,6 +61,11 @@ func (msg *TxMsg) GetEventKey() string {
 
 func (msg *TxMsg) GetTypeString() string {
 	return TxTypeString(msg.Type)
+}
+
+// to avoid 'tx already exists in cache' problem
+func (msg *TxMsg) SetTxHash()  {
+	msg.TxHash = time.Now().UnixNano()
 }
 
 func NewTxMsg(typ TxType, space string, path string, key string, data []byte) *TxMsg {

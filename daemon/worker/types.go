@@ -11,6 +11,10 @@ import (
 	"github.com/rhizomata-io/dist-daemon-tendermint/daemon/job"
 )
 
+const (
+	SpaceDefaultWorker = "daemon-data"
+)
+
 type DataPath struct {
 	JobID string
 	Topic string
@@ -21,18 +25,18 @@ type DataHandler func(jobID string, topic string, rowID string, value []byte) bo
 type Repository interface {
 	PutCheckpoint(jobID string, checkpoint interface{}) error
 	GetCheckpoint(jobID string, checkpoint interface{}) error
-	PutData(jobID string, topic string, rowID string, data []byte) error
-	PutObject(jobID string, topic string, rowID string, data interface{}) error
-	GetData(jobID string, topic string, rowID string) (data []byte, err error)
-	GetObject(jobID string, topic string, rowID string, data interface{}) error
-	DeleteData(jobID string, topic string, rowID string) error
-	GetDataWithTopic(jobID string, topic string, handler DataHandler) error
+	PutData(space string, jobID string, topic string, rowID string, data []byte) error
+	PutObject(space string, jobID string, topic string, rowID string, data interface{}) error
+	GetData(space string, jobID string, topic string, rowID string) (data []byte, err error)
+	GetObject(space string, jobID string, topic string, rowID string, data interface{}) error
+	DeleteData(space string, jobID string, topic string, rowID string) error
+	GetDataWithTopic(space string, jobID string, topic string, handler DataHandler) error
 	
-	PutDataFullPath(path string, data []byte) error
-	PutObjectFullPath(path string, data interface{}) error
-	GetDataFullPath(path string) (data []byte, err error)
-	GetObjectFullPath(path string, data interface{}) (err error)
-	DeleteDataFullPath(path string) error
+	PutDataFullPath(space string, path string, data []byte) error
+	PutObjectFullPath(space string, path string, data interface{}) error
+	GetDataFullPath(space string, path string) (data []byte, err error)
+	GetObjectFullPath(space string, path string, data interface{}) (err error)
+	DeleteDataFullPath(space string, path string) error
 }
 
 // Worker ..
@@ -46,20 +50,22 @@ type Worker interface {
 // Factory ..
 type Factory interface {
 	Name() string
+	Space() string
 	NewWorker(helper *Helper) (Worker, error)
 }
 
 // Helper ..
 type Helper struct {
-	config  common.DaemonConfig
-	logger  log.Logger
-	job     job.Job
-	dao     Repository
+	space  string
+	config common.DaemonConfig
+	logger log.Logger
+	job    job.Job
+	dao    Repository
 }
 
 // NewHelper ..
-func NewHelper(config common.DaemonConfig, logger log.Logger, job job.Job, dao Repository) *Helper {
-	helper := Helper{config: config, logger:logger, job: job, dao: dao}
+func NewHelper(space string, config common.DaemonConfig, logger log.Logger, job job.Job, dao Repository) *Helper {
+	helper := Helper{space: space, config: config, logger: logger, job: job, dao: dao}
 	return &helper
 }
 
@@ -73,6 +79,11 @@ func NewHelper(config common.DaemonConfig, logger log.Logger, job job.Job, dao R
 // ID get worker's id
 func (helper *Helper) ID() string {
 	return helper.job.ID
+}
+
+// ID get worker's space
+func (helper *Helper) Space() string {
+	return helper.space
 }
 
 // Job get worker's Job
@@ -105,7 +116,6 @@ func (helper *Helper) Error(msg string, keyvals ...interface{}) {
 	helper.logger.Error(msg, keyvals...)
 }
 
-
 // PutCheckpoint ..
 func (helper *Helper) PutCheckpoint(checkpoint interface{}) error {
 	return helper.dao.PutCheckpoint(helper.ID(), checkpoint)
@@ -118,39 +128,38 @@ func (helper *Helper) GetCheckpoint(checkpoint interface{}) error {
 
 // PutData ..
 func (helper *Helper) PutData(topic string, rowID string, data []byte) error {
-	return helper.dao.PutData(helper.ID(), topic, rowID, data)
+	return helper.dao.PutData(helper.space, helper.ID(), topic, rowID, data)
 }
 
 // PutDataFullPath ..
 func (helper *Helper) PutDataFullPath(fullPath string, data []byte) error {
-	return helper.dao.PutDataFullPath(fullPath, data)
+	return helper.dao.PutDataFullPath(helper.space, fullPath, data)
 }
 
 // PutObject ..
 func (helper *Helper) PutObject(topic string, rowID string, data interface{}) error {
-	return helper.dao.PutObject(helper.ID(), topic, rowID, data)
+	return helper.dao.PutObject(helper.space, helper.ID(), topic, rowID, data)
 }
 
 // GetData ..
 func (helper *Helper) GetData(topic string, rowID string) (data []byte, err error) {
-	return helper.dao.GetData(helper.ID(), topic, rowID)
+	return helper.dao.GetData(helper.space, helper.ID(), topic, rowID)
 }
 
 // GetObject ..
 func (helper *Helper) GetObject(topic string, rowID string, data interface{}) error {
-	return helper.dao.GetObject(helper.ID(), topic, rowID, data)
+	return helper.dao.GetObject(helper.space, helper.ID(), topic, rowID, data)
 }
 
 // GetDataList ..
 func (helper *Helper) GetDataList(topic string, handler DataHandler) error {
-	return helper.dao.GetDataWithTopic(helper.ID(), topic, handler)
+	return helper.dao.GetDataWithTopic(helper.space, helper.ID(), topic, handler)
 }
 
 // DeleteData ..
 func (helper *Helper) DeleteData(topic string, rowID string) error {
-	return helper.dao.DeleteData(helper.ID(), topic, rowID)
+	return helper.dao.DeleteData(helper.space, helper.ID(), topic, rowID)
 }
-
 
 type factoryRegistry struct {
 	sync.Mutex
@@ -163,7 +172,6 @@ func NewFactoryRegistry() (factory *factoryRegistry) {
 	factory.workerFactories = make(map[string]Factory)
 	return factory
 }
-
 
 // AddFactory add worker factory
 func (registry *factoryRegistry) RegisterFactory(factory Factory) error {

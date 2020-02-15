@@ -14,11 +14,6 @@ import (
 type Provider func(*cfg.Config, log.Logger) (tmNode *node.Node, dapp *DaemonApp, err error)
 
 type NodeProvider struct {
-	spaces []string
-}
-
-func NewNodeProvider(spaces []string) *NodeProvider {
-	return &NodeProvider{spaces:spaces}
 }
 
 func (provider *NodeProvider)NewNode(config *cfg.Config, logger log.Logger) (tmNode *node.Node, dapp *DaemonApp, err error) {
@@ -45,7 +40,7 @@ func (provider *NodeProvider)NewNode(config *cfg.Config, logger log.Logger) (tmN
 		oldPV.Upgrade(newPrivValKey, newPrivValState)
 	}
 	
-	dapp = NewDaemonApplication( config, logger, provider.spaces )
+	dapp = NewDaemonApplication( config, logger)
 	
 	tmNode, err = node.NewNode(config,
 		privval.LoadOrGenFilePV(newPrivValKey, newPrivValState),

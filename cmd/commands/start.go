@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
-	"github.com/rhizomata-io/dist-daemon-tendermint/api"
-	"github.com/rhizomata-io/dist-daemon-tendermint/tm"
 	"io"
 	"os"
+	
+	"github.com/rhizomata-io/dist-daemon-tendermint/api"
+	"github.com/rhizomata-io/dist-daemon-tendermint/tm"
 	
 	"github.com/rhizomata-io/dist-daemon-tendermint/daemon"
 	dmcfg "github.com/rhizomata-io/dist-daemon-tendermint/daemon/common"
@@ -17,12 +18,18 @@ import (
 	
 	cfg "github.com/tendermint/tendermint/config"
 	tmos "github.com/tendermint/tendermint/libs/os"
-	nm "github.com/tendermint/tendermint/node"
 )
 
 var (
 	genesisHash []byte
 )
+
+func AddStartCommand(cmd *cobra.Command, daemonProvider *daemon.BaseProvider) {
+	nodeProvider := tm.NodeProvider{}
+	// Create & start node
+	cmd.AddCommand(NewStartCmd(nodeProvider.NewNode, daemonProvider.NewDaemon))
+}
+
 
 // AddNodeFlags exposes some common configuration options on the command-line
 // These are exposed for convenience of commands embedding a tendermint node
@@ -100,8 +107,8 @@ func AddNodeFlags(cmd *cobra.Command) {
 // AddNodeFlags exposes some common configuration options on the command-line
 // These are exposed for convenience of commands embedding a tendermint node
 func AddDaemonFlags(cmd *cobra.Command) {
-	cmd.Flags().Uint("daemon.alive_threshold",2,"Alive Threshold Seconds")
-	cmd.Flags().String("daemon.api_addr","0.0.0.0:7777","API Service ip:port")
+	cmd.Flags().Uint("daemon.alive_threshold", 2, "Alive Threshold Seconds")
+	cmd.Flags().String("daemon.api_addr", "0.0.0.0:7777", "API Service ip:port")
 }
 
 // NewRunNodeCmd returns the command that allows the CLI to start a node.
@@ -132,10 +139,9 @@ func NewStartCmd(nodeProvider tm.Provider, daemonProvider daemon.Provider) *cobr
 			}
 			logger.Info("Started node", "nodeInfo", tmNode.Switch().NodeInfo())
 			
-			
 			threshold, err := cmd.Flags().GetUint("daemon.alive_threshold")
 			
-			if err != nil{
+			if err != nil {
 				threshold = 2
 			}
 			

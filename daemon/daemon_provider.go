@@ -11,15 +11,19 @@ import (
 	"github.com/tendermint/tendermint/node"
 )
 
+
 type Provider func(tmCfg *cfg.Config, logger log.Logger, tmNode *node.Node, daemonApp *tm.DaemonApp, config common.DaemonConfig) *Daemon
 
-type DefaultProvider struct {
+
+type BaseProvider struct {
 	Factories       []worker.Factory
 	OnDaemonStarted func(*Daemon)
 }
 
-func (provider DefaultProvider) New(tmCfg *cfg.Config, logger log.Logger, tmNode *node.Node, daemonApp *tm.DaemonApp, config common.DaemonConfig) *Daemon {
-	dm := NewDaemon(tmCfg, logger, tmNode, config)
+
+
+func (provider BaseProvider) NewDaemon(tmCfg *cfg.Config, logger log.Logger, tmNode *node.Node, daemonApp *tm.DaemonApp, config common.DaemonConfig) *Daemon {
+	dm := NewDaemon(tmCfg, logger, tmNode, config, daemonApp)
 	for _, fac := range provider.Factories {
 		dm.RegisterWorkerFactory(fac)
 	}

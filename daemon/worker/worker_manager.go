@@ -8,29 +8,35 @@ import (
 	
 	"github.com/rhizomata-io/dist-daemon-tendermint/daemon/common"
 	"github.com/rhizomata-io/dist-daemon-tendermint/daemon/job"
+	"github.com/rhizomata-io/dist-daemon-tendermint/types"
 )
 
 // Manager manager for jobs
 type Manager struct {
 	common.Context
-	config  common.DaemonConfig
-	dao     Repository
-	logger  log.Logger
-	facReg  *factoryRegistry
-	workers map[string]Worker
+	config        common.DaemonConfig
+	dao           Repository
+	logger        log.Logger
+	facReg        *factoryRegistry
+	workers       map[string]Worker
+	spaceRegistry types.SpaceRegistry
 }
 
 // NewManager ..
-func NewManager(context common.Context) *Manager {
+func NewManager(context common.Context, spaceRegistry types.SpaceRegistry) *Manager {
 	dao := NewRepository(context.GetConfig(), context, context.GetClient())
-	manager := Manager{Context: context, dao: dao, logger:context}
+	manager := Manager{Context: context, dao: dao, logger: context, spaceRegistry: spaceRegistry}
 	manager.facReg = NewFactoryRegistry()
 	manager.workers = make(map[string]Worker)
 	return &manager
 }
 
-func (manager *Manager) RegisterWorkerFactory(factory Factory) {
-	manager.facReg.RegisterFactory(factory)
+func (manager *Manager) RegisterWorkerFactory(factory Factory) error {
+	err := manager.facReg.RegisterFactory(factory)
+	if err == nil {
+		manager.spaceRegistry.RegisterSpaceIfNotExist(factory.Space())
+	}
+	return err
 }
 
 func (manager *Manager) GetRepository() Repository {
@@ -48,11 +54,6 @@ func (manager *Manager) ContainsWorker(id string) bool {
 // GetWorker get worker for id
 func (manager *Manager) GetWorker(id string) Worker {
 	return manager.workers[id]
-}
-
-func (manager *Manager) newHelper(job job.Job) (helper *Helper) {
-	helper = NewHelper(manager.config, manager.logger, job, manager.dao)
-	return helper
 }
 
 // registerWorker ..
@@ -73,9 +74,11 @@ func (manager *Manager) registerWorker(job job.Job) error {
 }
 
 func (manager *Manager) newWorker(job job.Job) (Worker, error) {
-	helper := manager.newHelper(job)
-	
 	fac, err := manager.facReg.GetFactory(job.FactoryName)
+	if err != nil {
+		return nil, err
+	}
+	helper := NewHelper(fac.Space(), manager.config, manager.logger, job, manager.dao)
 	
 	if err != nil {
 		manager.logger.Error(fmt.Sprintf("cannot find worker factory '%s'", job.FactoryName), err)
@@ -154,6 +157,3 @@ func (manager *Manager) SetJobs(jobs []job.Job) {
 		}
 	}
 }
-
-
-

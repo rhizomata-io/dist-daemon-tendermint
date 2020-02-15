@@ -2,7 +2,6 @@ package common
 
 const (
 	SpaceDaemon = "daemon"
-	SpaceDaemonData = "daemon_data"
 )
 
 type DaemonConfig struct {

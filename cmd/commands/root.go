@@ -80,4 +80,5 @@ func InitRootCommand() *cobra.Command {
 		ShowNodeIDCmd,
 		VersionCmd,
 	)
+	return rootCmd
 }

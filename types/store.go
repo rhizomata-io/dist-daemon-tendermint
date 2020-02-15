@@ -19,4 +19,8 @@ type Store interface {
 	GetMany(start, end []byte) (kvArrayBytes[]byte, err error)
 }
 
+type SpaceRegistry interface {
+	RegisterSpace(name string)
+	RegisterSpaceIfNotExist(name string)
+}
 

@@ -8,7 +8,6 @@ import (
 	"github.com/rhizomata-io/dist-daemon-tendermint/daemon/common"
 	"github.com/rhizomata-io/dist-daemon-tendermint/daemon/job"
 	"github.com/rhizomata-io/dist-daemon-tendermint/daemon/worker"
-	"github.com/rhizomata-io/dist-daemon-tendermint/daemon/worker/hello"
 	
 	cfg "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/libs/log"
@@ -25,28 +24,33 @@ type Daemon struct {
 	client         types.Client
 	context        common.Context
 	config         common.DaemonConfig
+	spaceRegistry  types.SpaceRegistry
 	clusterManager *cluster.Manager
 	jobManager     *job.Manager
 	workerManager  *worker.Manager
 	jobOrganizer   job.Organizer
 }
 
-func NewDaemon(tmCfg *cfg.Config, logger log.Logger, tmNode *node.Node, config common.DaemonConfig) (dm *Daemon) {
+func NewDaemon(tmCfg *cfg.Config, logger log.Logger, tmNode *node.Node, config common.DaemonConfig, spaceRegistry types.SpaceRegistry) (dm *Daemon) {
 	ctx := common.NewContext(tmCfg, logger, tmNode, config)
 	dm = &Daemon{
 		context: ctx,
-		config: config,
+		config:  config,
 		tmCfg:   tmCfg,
 		logger:  logger,
 		tmNode:  tmNode,
 	}
+	
 	dm.client = ctx.GetClient()
 	dm.id = string(dm.tmNode.NodeInfo().ID())
+	dm.spaceRegistry = spaceRegistry
+	
+	spaceRegistry.RegisterSpace(common.SpaceDaemon)
 	
 	dm.clusterManager = cluster.NewManager(ctx)
 	ctx.SetClusterState(dm.clusterManager.GetCluster())
 	dm.jobManager = job.NewManager(ctx)
-	dm.workerManager = worker.NewManager(ctx)
+	dm.workerManager = worker.NewManager(ctx, spaceRegistry)
 	return dm
 }
 
@@ -84,8 +88,6 @@ func (dm *Daemon) Start() {
 		if dm.jobOrganizer == nil {
 			dm.jobOrganizer = job.NewSimpleOrganizer(dm.logger)
 		}
-		
-		dm.workerManager.RegisterWorkerFactory(&hello.Factory{})
 		
 		// common.StartDaemonEventBus()
 		
@@ -154,7 +156,7 @@ func (dm *Daemon) onMemberJobsChanged(event types.Event) {
 func (dm *Daemon) checkJobsAndAllocate() {
 	jobs, err := dm.jobManager.GetRepository().GetMemberJobs(dm.ID())
 	
-	if err != nil  && !types.IsNoDataError(err) {
+	if err != nil && !types.IsNoDataError(err) {
 		dm.logger.Error(fmt.Sprintf("[Daemon] cannot get %s's jobs", dm.ID()))
 		return
 	}
@@ -176,7 +178,7 @@ func (dm *Daemon) onJobsChanged(event types.Event) {
 
 func (dm *Daemon) distributeJobs(aliveMembers []string) {
 	allJobs, err := dm.jobManager.GetRepository().GetAllJobs()
-	if err != nil && !types.IsNoDataError(err){
+	if err != nil && !types.IsNoDataError(err) {
 		dm.logger.Error("[Daemon] distributeJobs - GetAllJobs ", err)
 		return
 	}
@@ -188,11 +190,20 @@ func (dm *Daemon) distributeJobs(aliveMembers []string) {
 	
 	newMembJobs, err := dm.jobOrganizer.Distribute(allJobs, aliveMembers, membJobMap)
 	
+	if err != nil {
+		dm.logger.Error("[Daemon] distributeJobs : ", "new members' jobs", err)
+		return
+	}
+	
 	dm.logger.Info("[Daemon] distributeJobs : ", "new members' jobs", newMembJobs)
 	
 	for nodeid, jobs := range newMembJobs {
-		dm.jobManager.GetRepository().PutMemberJobIDs(nodeid, jobs)
-		dm.logger.Info(fmt.Sprintf("[Daemon] Put Member(%s) jobs. %s", nodeid, jobs))
+		err = dm.jobManager.GetRepository().PutMemberJobIDs(nodeid, jobs)
+		if err != nil {
+			dm.logger.Error(fmt.Sprintf("[Daemon] Put Member(%s) jobs. %s", nodeid, jobs), err)
+		} else {
+			dm.logger.Info(fmt.Sprintf("[Daemon] Put Member(%s) jobs. %s", nodeid, jobs))
+		}
 	}
 	
 }

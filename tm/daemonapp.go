@@ -20,13 +20,9 @@ type DaemonApp struct {
 
 var _ abcitypes.Application = (*DaemonApp)(nil)
 
-func NewDaemonApplication(config *cfg.Config, logger log.Logger, spaces []string) (dapp *DaemonApp) {
+func NewDaemonApplication(config *cfg.Config, logger log.Logger) (dapp *DaemonApp) {
 	baseapp := NewBaseApplication(config, logger)
 	dapp = &DaemonApp{BaseApplication: baseapp}
-	
-	for _, name := range spaces {
-		dapp.registerSpace(name)
-	}
 	
 	return dapp
 }

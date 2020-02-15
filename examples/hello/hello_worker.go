@@ -19,12 +19,12 @@ type Factory struct {
 var _ worker.Factory = (*Factory)(nil)
 
 func (fac *Factory) Name() string { return FactoryName }
+func (fac *Factory) Space() string { return worker.SpaceDefaultWorker }
 
 func (fac *Factory) NewWorker(helper *worker.Helper) (worker.Worker, error) {
 	worker := &Worker{id: helper.ID(), helper: helper}
 	
 	infoBytes := worker.helper.Job().Data
-	//infoBytes = []byte(`{"Interval":"300ms","Greet":"hi 3s" }`)
 	
 	jobInfo := JobInfo{}
 	err := json.Unmarshal(infoBytes, &jobInfo)

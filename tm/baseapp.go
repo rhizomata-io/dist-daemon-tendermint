@@ -21,6 +21,7 @@ import (
 	"github.com/rhizomata-io/dist-daemon-tendermint/tm/events"
 	"github.com/rhizomata-io/dist-daemon-tendermint/tm/store"
 	"github.com/rhizomata-io/dist-daemon-tendermint/tm/tmcom"
+	"github.com/rhizomata-io/dist-daemon-tendermint/types"
 )
 
 var (
@@ -29,6 +30,10 @@ var (
 
 const (
 	ValidatorSetChangePrefix string = "val:"
+)
+
+var (
+	stateKey = []byte("stateKey")
 )
 
 type State struct {
@@ -71,10 +76,11 @@ type BaseApplication struct {
 	// validator set
 	ValUpdates         []abcitypes.ValidatorUpdate
 	valAddrToPubKeyMap map[string]abcitypes.PubKey
-	spaces map[string]*store.Registry
+	spaces             map[string]*store.Registry
 }
 
 var _ abcitypes.Application = (*BaseApplication)(nil)
+var _ types.SpaceRegistry = (*BaseApplication)(nil)
 
 func NewBaseApplication(config *cfg.Config, logger log.Logger) (bapp *BaseApplication) {
 	bapp = &BaseApplication{
@@ -82,7 +88,7 @@ func NewBaseApplication(config *cfg.Config, logger log.Logger) (bapp *BaseApplic
 		logger:             logger,
 		ValUpdates:         []abcitypes.ValidatorUpdate{},
 		valAddrToPubKeyMap: make(map[string]abcitypes.PubKey),
-		spaces: make(map[string]*store.Registry),
+		spaces:             make(map[string]*store.Registry),
 	}
 	
 	registry := bapp.registerSpace(tmcom.SpaceDaemonState)
@@ -92,10 +98,24 @@ func NewBaseApplication(config *cfg.Config, logger log.Logger) (bapp *BaseApplic
 	return bapp
 }
 
+func (app *BaseApplication) RegisterSpace(name string) {
+	app.registerSpace(name)
+}
+
+func (app *BaseApplication) RegisterSpaceIfNotExist(name string) {
+	if _, ok := app.spaces[name]; !ok {
+		app.registerSpace(name)
+	}
+}
+
 func (app *BaseApplication) registerSpace(name string) *store.Registry {
+	if _, ok := app.spaces[name]; ok {
+		panic("[ERROR] Register Space '" + name + "' already exists.")
+	}
+	
 	db, err := dbm.NewGoLevelDB(name, app.config.DBDir())
 	if err != nil {
-		panic("[ERROR] Register Space '"+name + "' : " + err.Error())
+		panic("[ERROR] Register Space '" + name + "' : " + err.Error())
 	}
 	
 	storeRegistry := store.NewRegistry(db)
